@@ -89,6 +89,34 @@
         .light .trip-meter-chip { color:#0e7490; background:rgba(8,145,178,.07); }
         @media (prefers-reduced-motion:no-preference) { .trip-meter-dot { animation:meterDot 1.8s infinite; } }
         @keyframes meterDot { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+        /* SMART MEETER premium redesign: clean instrument-cluster style */
+        body.tech-bg { background: radial-gradient(ellipse at 50% -10%, #173047 0%, #08111f 42%, #050a12 100%) !important; background-attachment: fixed !important; }
+        body.tech-bg::before { background: radial-gradient(circle at 15% 15%, rgba(20,184,166,.10), transparent 32%), radial-gradient(circle at 90% 35%, rgba(59,130,246,.09), transparent 30%) !important; animation:none !important; }
+        header.app-glass { background:rgba(6,13,24,.92)!important; border-color:rgba(148,163,184,.14)!important; box-shadow:0 8px 28px rgba(0,0,0,.22)!important; backdrop-filter:blur(18px); }
+        .app-glass { background:rgba(12,22,37,.88)!important; border:1px solid rgba(148,163,184,.16)!important; box-shadow:0 12px 32px rgba(0,0,0,.16); }
+        .trip-meter-card { padding:clamp(18px,4vw,30px)!important; border:1px solid rgba(45,212,191,.30)!important; border-radius:30px!important; background:linear-gradient(145deg,#101e2e 0%,#0b1725 60%,#0b2028 100%)!important; box-shadow:0 24px 65px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.06)!important; }
+        .trip-meter-card::before { inset:0!important; background:radial-gradient(ellipse at 50% 0%,rgba(20,184,166,.14),transparent 58%)!important; }
+        .trip-meter-card::after { height:3px!important; background:linear-gradient(90deg,transparent,#2dd4bf 20%,#60a5fa 50%,#2dd4bf 80%,transparent)!important; }
+        .trip-meter-screen { border-radius:25px!important; padding:clamp(22px,6vw,36px) 10px 24px!important; border:1px solid rgba(45,212,191,.22)!important; background:linear-gradient(180deg,#030a12,#071722)!important; box-shadow:inset 0 0 40px rgba(20,184,166,.07),0 10px 25px rgba(0,0,0,.22)!important; }
+        .trip-meter-screen::before { opacity:.045!important; background:repeating-linear-gradient(0deg,transparent 0,transparent 5px,rgba(255,255,255,.4) 6px)!important; }
+        .trip-meter-value { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important; font-size:clamp(2.65rem,12vw,5.2rem)!important; letter-spacing:-.055em!important; line-height:1.12!important; color:#b8ffe7!important; text-shadow:0 0 22px rgba(52,211,153,.18)!important; }
+        .trip-meter-unit { letter-spacing:.32em!important; font-size:.68rem!important; color:#6ee7d2!important; }
+        .trip-meter-chip { background:rgba(16,185,129,.09)!important; border-color:rgba(52,211,153,.25)!important; color:#a7f3d0!important; padding:7px 12px!important; }
+        .trip-meter-card button { min-height:54px; border-radius:17px!important; font-size:13px!important; letter-spacing:.01em; box-shadow:0 8px 20px rgba(0,0,0,.18)!important; }
+        .trip-meter-card button:first-child:not(.hidden) { background:linear-gradient(135deg,#6ee7b7,#2dd4bf)!important; }
+        .trip-meter-card button:active { transform:scale(.975); }
+        .trip-meter-card h3 { letter-spacing:-.025em; }
+        .rounded-3xl, .rounded-2xl { transition:border-color .2s ease, box-shadow .2s ease; }
+        button { cursor:pointer; }
+        input, select, textarea { border-radius:14px!important; }
+        .tab-content .app-glass { border-radius:24px!important; }
+        .light body, .light body.tech-bg { background:#f1f7f9!important; }
+        .light .trip-meter-card { background:linear-gradient(145deg,#ffffff,#edfafa)!important; border-color:rgba(13,148,136,.24)!important; box-shadow:0 18px 45px rgba(15,23,42,.10)!important; }
+        .light .trip-meter-screen { background:linear-gradient(180deg,#f8ffff,#eaf9f7)!important; }
+        .light .trip-meter-value { color:#047857!important; text-shadow:none!important; }
+        @media(max-width:380px) { .trip-meter-card { padding:15px!important; } .trip-meter-value { font-size:clamp(2.35rem,11vw,3.2rem)!important; } .trip-meter-screen { padding:20px 5px!important; } }
+        @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
     </style>
 </head>
 <body class="tech-bg text-slate-100 light:text-slate-900 min-h-screen selection:bg-brand-500 selection:text-slate-950 transition-colors duration-500">
@@ -359,10 +387,33 @@
                     <i class="fa-solid fa-gas-pump"></i>
                     <span>තෙල් ගැසීමක් ඇතුළත් කරන්න</span>
                 </h3>
+                <div class="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-4 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center text-xl"><i class="fa-solid fa-camera"></i></div>
+                        <div class="flex-1">
+                            <div class="text-sm font-black">පොම්පයේ L අගය Photo එකෙන් කියවන්න</div>
+                            <p class="text-xs text-slate-400 mt-1">පෙට්‍රල් පොම්පයේ ලීටර් display එකේ පැහැදිලි photo එකක් ගන්න.</p>
+                        </div>
+                    </div>
+                    <input id="pump-photo-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="readPumpPhoto(event)">
+                    <div id="pump-camera-wrap" class="hidden space-y-3">
+                        <video id="pump-camera-video" autoplay playsinline muted class="w-full max-h-72 rounded-xl bg-black object-contain"></video>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="capturePumpPhoto()" class="bg-brand-500 text-slate-950 font-black py-3 rounded-xl text-sm"><i class="fa-solid fa-camera mr-2"></i> Photo ගන්න</button>
+                            <button type="button" onclick="closePumpCamera()" class="bg-slate-700 text-white font-bold py-3 rounded-xl text-sm">කැමරාව වසන්න</button>
+                        </div>
+                    </div>
+                    <canvas id="pump-camera-canvas" class="hidden"></canvas>
+                    <button id="pump-camera-open" type="button" onclick="openPumpCamera()" class="w-full bg-slate-800 light:bg-slate-200 border border-slate-700 light:border-slate-300 text-white light:text-slate-900 font-black py-3 rounded-xl text-sm"><i class="fa-solid fa-camera mr-2"></i> කැමරාව විවෘත කරන්න</button>
+                    <button type="button" onclick="document.getElementById('pump-photo-input').click()" class="w-full text-slate-400 border border-slate-700/70 font-bold py-2.5 rounded-xl text-xs"><i class="fa-regular fa-image mr-2"></i> Gallery එකෙන් Photo එකක් තෝරන්න</button>
+                    <img id="pump-photo-preview" class="hidden w-full max-h-56 object-contain rounded-xl bg-black/20" alt="Fuel pump display preview">
+                    <div id="pump-ocr-status" class="text-xs text-slate-400" aria-live="polite">Photo එකෙන් L ගණන කියවීමට සූදානම්.</div>
+                    <p class="text-[10px] text-amber-400">සටහන: OCR කියවීම වැරදි විය හැක. එකතු කිරීමට පෙර L අගය පරීක්ෂා කරන්න.</p>
+                </div>
                 <div class="space-y-3.5">
                     <div>
-                        <label class="block text-[10px] uppercase font-black text-slate-400 mb-1.5">පෙට්‍රල් ලීටර් ගණන</label>
-                        <input type="number" id="refuel-liters" step="0.1" placeholder="උදා: 3.5" class="w-full bg-slate-900 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl p-3.5 text-sm font-black focus:outline-none">
+                        <label class="block text-[10px] uppercase font-black text-slate-400 mb-1.5">පෙට්‍රල් ලීටර් ගණන (Photo එකෙන් auto-fill වේ)</label>
+                        <input type="number" id="refuel-liters" step="0.01" min="0.01" placeholder="Photo එකෙන් හඳුනාගත් L ගණන" class="w-full bg-slate-900 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl p-3.5 text-sm font-black focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-[10px] uppercase font-black text-slate-400 mb-1.5">ගෙවූ මුදල (LKR)</label>
@@ -853,6 +904,108 @@
             alert(`සාර්ථකයි! ගමන් කළ දුර: ${manualKM.toFixed(1)} KM. අඩු වූ තෙල්: ${fuelNeeded.toFixed(2)} L.`);
             document.getElementById('manual-km-input').value = '';
             document.getElementById('manual-preview-box').classList.add('hidden');
+        }
+
+        let pumpCameraStream = null;
+
+        async function openPumpCamera() {
+            const status = document.getElementById('pump-ocr-status');
+            const wrap = document.getElementById('pump-camera-wrap');
+            const video = document.getElementById('pump-camera-video');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                status.textContent = 'මෙම browser එකේ direct camera පහසුකම නැහැ. HTTPS website එකෙන් විවෘත කර Chrome permission ලබාදී නැවත උත්සාහ කරන්න.';
+                document.getElementById('pump-photo-input').click();
+                return;
+            }
+            try {
+                closePumpCamera();
+                pumpCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+                video.srcObject = pumpCameraStream;
+                wrap.classList.remove('hidden');
+                document.getElementById('pump-camera-open').classList.add('hidden');
+                status.textContent = 'කැමරාව සූදානම්. පොම්පයේ L ගණන පැහැදිලිව frame එකට ගෙන Photo ගන්න.';
+                await video.play();
+            } catch (err) {
+                console.error(err);
+                status.textContent = 'කැමරාව විවෘත කළ නොහැක. Website එක HTTPS ද යන්නත්, Chrome camera permission Allow කර ඇතිද යන්නත් පරීක්ෂා කරන්න.';
+                wrap.classList.add('hidden');
+                document.getElementById('pump-camera-open').classList.remove('hidden');
+            }
+        }
+
+        function closePumpCamera() {
+            if (pumpCameraStream) {
+                pumpCameraStream.getTracks().forEach(track => track.stop());
+                pumpCameraStream = null;
+            }
+            const video = document.getElementById('pump-camera-video');
+            if (video) video.srcObject = null;
+            const wrap = document.getElementById('pump-camera-wrap');
+            if (wrap) wrap.classList.add('hidden');
+            const openBtn = document.getElementById('pump-camera-open');
+            if (openBtn) openBtn.classList.remove('hidden');
+        }
+
+        function capturePumpPhoto() {
+            const video = document.getElementById('pump-camera-video');
+            const canvas = document.getElementById('pump-camera-canvas');
+            const status = document.getElementById('pump-ocr-status');
+            if (!video.videoWidth || !video.videoHeight) {
+                status.textContent = 'කැමරාව සූදානම් වනතුරු තත්පරයක් රැඳී සිටින්න.';
+                return;
+            }
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    status.textContent = 'Photo එක ගන්න බැරි වුණා. නැවත උත්සාහ කරන්න.';
+                    return;
+                }
+                const file = new File([blob], 'fuel-pump-photo.jpg', { type: 'image/jpeg' });
+                closePumpCamera();
+                readPumpPhoto({ target: { files: [file] } });
+            }, 'image/jpeg', 0.92);
+        }
+
+        async function readPumpPhoto(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const status = document.getElementById('pump-ocr-status');
+            const preview = document.getElementById('pump-photo-preview');
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('hidden');
+            status.textContent = 'Photo එක පරීක්ෂා කරමින්... ටිකක් රැඳී සිටින්න.';
+            try {
+                if (!window.Tesseract) {
+                    status.textContent = 'OCR engine එක load වෙමින්... Internet connection එක අවශ්‍යයි.';
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+                        script.onload = resolve;
+                        script.onerror = () => reject(new Error('OCR engine load failed'));
+                        document.head.appendChild(script);
+                    });
+                }
+                const result = await Tesseract.recognize(file, 'eng', {
+                    logger: m => { if (m.status === 'recognizing text') status.textContent = `Photo එක කියවමින්... ${Math.round((m.progress || 0) * 100)}%`; }
+                });
+                const raw = (result.data.text || '').replace(/,/g, '.');
+                // Find decimal/whole numeric strings; avoid auto-submitting because pump displays vary.
+                const matches = raw.match(/\d+(?:\.\d{1,3})?/g) || [];
+                const nums = matches.map(v => Number(v)).filter(v => Number.isFinite(v) && v > 0 && v <= 1000);
+                if (!nums.length) {
+                    status.textContent = 'L ගණන හඳුනාගන්න බැරි වුණා. Display එකට ළඟින්, පැහැදිලි photo එකක් ගන්න.';
+                    return;
+                }
+                // Prefer a plausible liters reading. User must verify it before adding fuel.
+                const litersGuess = nums.find(v => v <= 100) ?? nums[0];
+                document.getElementById('refuel-liters').value = litersGuess.toFixed(2).replace(/\.?0+$/, '');
+                status.textContent = `හඳුනාගත් අගය: ${litersGuess} L. කරුණාකර display එක සමඟ සසඳා තහවුරු කරන්න. OCR කියවීම: ${raw.trim().slice(0, 100)}`;
+            } catch (err) {
+                console.error(err);
+                status.textContent = 'Photo කියවීමට නොහැකි වුණා. Internet සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න, නැත්නම් L අගය අතින් ඇතුළත් කරන්න.';
+            }
         }
 
         function submitRefuel() {
