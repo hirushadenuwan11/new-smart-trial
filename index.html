@@ -934,19 +934,15 @@
                         time: position.timestamp || Date.now()
                     };
 
-                    // Vivo Y93 වැනි පැරණි දුරකථන සඳහා: 60m ඉක්මවූ විටත් තාවකාලිකව දත්ත බලන්න;
-                    // 100m ට වඩා දුර්වල fixes distance ගණනයට භාවිතා නොකරයි.
-                    if (current.accuracy > 100) {
-                        pendingGPSPositions = [];
+                    // Indoor/weak fixes are ignored, but allow ordinary outdoor phone GPS variation.
+                    if (current.accuracy > 35) {
                         document.getElementById('trip-status-text').innerText =
-                            `GPS තවමත් නිවැරදි නැහැ (±${Math.round(current.accuracy)}m). Location ON කර විවෘත අහස යට මොහොතක් රැඳෙන්න.`;
+                            `GPS සංඥාව දුර්වලයි (±${Math.round(current.accuracy)}m). එළිමහන් ස්ථානයක සිටින්න.`;
                         return;
                     }
 
                     document.getElementById('trip-status-text').innerText =
-                        current.accuracy > 60
-                            ? `GPS ලැබුණා (±${Math.round(current.accuracy)}m); ස්ථාවර reading එකක් බලාපොරොත්තු වෙයි...`
-                            : `GPS සම්බන්ධයි (±${Math.round(current.accuracy)}m). ගමන ගණනය කරමින්...`; 
+                        `GPS සම්බන්ධයි (±${Math.round(current.accuracy)}m). හෙමින් ගමනත් ගණනය කරමින්...`;
 
                     if (!lastPosition) {
                         lastPosition = current;
@@ -966,14 +962,18 @@
                         return;
                     }
 
-                    // Suppress stationary GPS drift. Raise the threshold on older/less accurate phones.
-                    const movementThresholdM = Math.max(
-                        18,
-                        Math.min(45, (lastPosition.accuracy + current.accuracy) * 0.75)
-                    );
+                    // Lower threshold helps real slow movement/downhill travel register.
+                    // When phone reports motion, use a smaller threshold; while stationary,
+                    // keep a little more filtering to reduce GPS jitter.
+                    const reportedMoving = current.speed !== null && current.speed >= 0.7;
+                    const accuracyThreshold = (lastPosition.accuracy + current.accuracy) * 0.22;
+                    const movementThresholdM = reportedMoving
+                        ? Math.max(2.5, Math.min(6.5, accuracyThreshold))
+                        : Math.max(4.5, Math.min(9, accuracyThreshold));
 
-                    // දුරකථනයේ speed අඩු නම් හෝ GPS accuracy අඩු නම්, නවතින විට ඇති jitter ඉවත් කරන්න.
-                    if (current.speed !== null && current.speed < 0.8 && distM < Math.max(25, movementThresholdM * 1.5)) {
+                    // Ignore only tiny displacement when GPS itself reports near-zero speed.
+                    // Do not block all low-speed travel: real movement is confirmed by consecutive fixes.
+                    if (current.speed !== null && current.speed < 0.35 && distM < 3.5) {
                         pendingGPSPositions = [];
                         return;
                     }
