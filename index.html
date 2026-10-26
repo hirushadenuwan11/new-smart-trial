@@ -962,63 +962,44 @@
                         return;
                     }
 
-                    // Lower threshold helps real slow movement/downhill travel register.
-                    // When phone reports motion, use a smaller threshold; while stationary,
-                    // keep a little more filtering to reduce GPS jitter.
+                    // Keep the original anchor while movement is uncertain. Use net displacement
+                    // from the anchor (not every GPS zig-zag) so stationary drift does not add up.
                     const reportedMoving = current.speed !== null && current.speed >= 0.7;
-                    const accuracyThreshold = (lastPosition.accuracy + current.accuracy) * 0.22;
+                    const accuracyThreshold = (lastPosition.accuracy + current.accuracy) * 0.20;
                     const movementThresholdM = reportedMoving
-                        ? Math.max(2.5, Math.min(6.5, accuracyThreshold))
-                        : Math.max(4.5, Math.min(9, accuracyThreshold));
-
-                    // Ignore only tiny displacement when GPS itself reports near-zero speed.
-                    // Do not block all low-speed travel: real movement is confirmed by consecutive fixes.
-                    if (current.speed !== null && current.speed < 0.35 && distM < 3.5) {
-                        pendingGPSPositions = [];
-                        return;
-                    }
+                        ? Math.max(3.0, Math.min(5.5, accuracyThreshold))
+                        : Math.max(7.0, Math.min(11.0, accuracyThreshold));
 
                     if (distM < movementThresholdM) {
-                        // Anchor එක වෙනස් නොකරන්න; එවිට සැබෑ හෙමින් ගමනේ දුර එකතු වී තහවුරු වේ.
+                        // Keep a short history for slow movement; don't move the anchor on GPS jitter.
                         pendingGPSPositions.push(current);
-                        if (pendingGPSPositions.length > 4) pendingGPSPositions.shift();
+                        if (pendingGPSPositions.length > 6) pendingGPSPositions.shift();
                         return;
                     }
 
-                    // Anchor එකෙන් threshold ඉක්මවා ගිය පළමු reading එක පමණක් ප්‍රමාණවත් නොවේ.
-                    // ඊළඟ reading එකත් එම ප්‍රදේශයේ සිට anchor එකෙන් දුරස්ව තිබේ නම් movement තහවුරු වේ.
-                    const previousCandidate = pendingGPSPositions.length
-                        ? pendingGPSPositions[pendingGPSPositions.length - 1]
-                        : null;
+                    pendingGPSPositions.push(current);
+                    if (pendingGPSPositions.length > 6) pendingGPSPositions.shift();
 
-                    if (!previousCandidate) {
-                        pendingGPSPositions.push(current);
-                        if (pendingGPSPositions.length > 4) pendingGPSPositions.shift();
-                        return;
-                    }
+                    // Require several fixes that continue to show meaningful net progress away
+                    // from the anchor. This helps avoid the 0.01–0.02 KM stationary drift issue.
+                    const candidateDistances = pendingGPSPositions.map(p =>
+                        calculateDistance(lastPosition.lat, lastPosition.lng, p.lat, p.lng) * 1000
+                    );
+                    const meaningful = candidateDistances.filter(d => d >= movementThresholdM);
+                    if (meaningful.length < 3) return;
 
-                    const previousCandidateDistM = calculateDistance(
-                        lastPosition.lat, lastPosition.lng,
-                        previousCandidate.lat, previousCandidate.lng
-                    ) * 1000;
-                    const candidateToCurrentM = calculateDistance(
-                        previousCandidate.lat, previousCandidate.lng,
-                        current.lat, current.lng
-                    ) * 1000;
+                    const recent = pendingGPSPositions.slice(-3);
+                    const recentDistances = recent.map(p =>
+                        calculateDistance(lastPosition.lat, lastPosition.lng, p.lat, p.lng) * 1000
+                    );
+                    const progressing = recentDistances[2] >= movementThresholdM &&
+                        recentDistances[1] >= movementThresholdM * 0.75 &&
+                        recentDistances[2] >= recentDistances[0] * 0.80;
+                    if (!progressing) return;
 
-                    const movementConfirmed =
-                        previousCandidateDistM >= movementThresholdM * 0.90 &&
-                        distM >= previousCandidateDistM * 0.85 &&
-                        candidateToCurrentM <= Math.max(8, movementThresholdM * 0.65);
-
-                    if (!movementConfirmed) {
-                        pendingGPSPositions.push(current);
-                        if (pendingGPSPositions.length > 4) pendingGPSPositions.shift();
-                        return;
-                    }
-
-                    // සනාථ කළ net displacement පමණක් එකතු කිරීමෙන් stationary drift/path zig-zag අඩු වේ.
-                    totalTripKM += distKM;
+                    // Add only confirmed net displacement, not noisy point-to-point zig-zags.
+                    const confirmedDistanceM = distM;
+                    totalTripKM += confirmedDistanceM / 1000;
                     lastPosition = current;
                     pendingGPSPositions = [];
                     document.getElementById('live-km-val').innerText = `${totalTripKM.toFixed(2)} KM`;
