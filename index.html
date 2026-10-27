@@ -502,8 +502,10 @@ function addFuel() {
   if (getFuelRemaining() + liters > settings.tank + 0.0001) {
     showNotice(`තෙල් එකතු කළාම ටැංකි ධාරිතාව (${settings.tank.toFixed(2)} L) ඉක්මවනවා. Fuel settings පරීක්ෂා කරන්න.`); return;
   }
-  refuels.unshift({id:Date.now(), liters, cost, date:Date.now()});
+  const localRefuel = {id:Date.now(), liters, cost, date:Date.now()};
+  refuels.unshift(localRefuel);
   saveJSON(REFUEL_KEY, refuels);
+  if (typeof smToken !== 'undefined' && smToken) smApi('addFuel',{token:smToken,liters,cost}).then(smLoadState).catch(e=>showNotice('Cloud sync error: '+e.message));
   $("refuelLiters").value = ""; $("refuelCost").value = "";
   hideNotice(); updateDashboard(); renderRefuelHistory();
   showNotice(`${liters.toFixed(2)} L තෙල් ටැංකියට එකතු කළා.`);
@@ -711,6 +713,7 @@ function endTrip() {
   history.unshift({...trip});
   history = history.slice(0,100);
   saveJSON(STORAGE_KEY, history);
+  if (typeof smToken !== 'undefined' && smToken) smApi('saveTrip',{token:smToken,distanceKm:trip.distanceKm,fuelUsed:trip.fuelUsed,startDate:new Date(trip.startTime).toISOString(),endDate:new Date(trip.endTime).toISOString()}).then(smLoadState).catch(e=>showNotice('Trip cloud sync error: '+e.message));
 
   if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
   gpsWatch = null;
@@ -964,5 +967,57 @@ window.addEventListener("beforeunload",()=>{
   if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
 });
 </script>
+
+<style>
+#smAuth{position:fixed;inset:0;z-index:99999;background:#07111f;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial,sans-serif}
+#smAuth .authbox{width:min(420px,100%);background:#101e30;border:1px solid #263a50;border-radius:18px;padding:24px;box-shadow:0 20px 70px #0008}
+#smAuth h2{margin:0 0 8px;color:#f2f7ff}#smAuth p{color:#9fb4ca;font-size:14px;line-height:1.5}
+#smAuth input{display:block;width:100%;margin:12px 0;padding:13px;border-radius:9px;border:1px solid #36506a;background:#07111f;color:white;font-size:16px}
+#smAuth button{padding:12px 14px;border:0;border-radius:9px;background:#2584ff;color:white;font-weight:bold;margin:5px 5px 0 0;cursor:pointer}
+#smAuth button.secondary{background:#263a50}#smAuth #authMsg{min-height:20px;color:#25d9ef}
+#smLogout{position:fixed;z-index:9998;right:12px;top:12px;background:#263a50;color:white;border:0;border-radius:8px;padding:8px 10px;display:none}
+</style>
+<div id="smAuth">
+ <div class="authbox"><h2>SMART MEETER</h2><p>ඔබගේ account එකට Login වෙන්න. එකම account එකෙන් වෙනත් phone එකකත් දත්ත ලබාගත හැක.</p>
+ <input id="smUser" autocomplete="username" placeholder="Username (අකුරු/අංක/_)">
+ <input id="smPass" type="password" autocomplete="current-password" placeholder="Password (අවම අකුරු 10)">
+ <button id="smLogin">Login</button><button id="smRegister" class="secondary">Register</button>
+ <p id="authMsg">පළමුව Apps Script Web App URL එක සකසන්න.</p></div>
+</div><button id="smLogout">Logout</button>
+<script>
+// Apps Script > Deploy > Web app වෙතින් ලැබෙන /exec URL එක මෙතැනට දාන්න.
+const SMART_MEETER_API_URL = 'https://script.google.com/macros/s/AKfycbxUv8nK71CoB8mqrGTqcwXl2MXGMQZDh4zejcOaHpP1f3Z9f9L5zm_0RH5iEjjI2yIBwg/exec';
+let smToken = sessionStorage.getItem('sm_token') || '';
+async function smApi(action, payload={}) {
+  if (!SMART_MEETER_API_URL.startsWith('https://script.google.com/macros/s/')) throw new Error('Code එකේ SMART_MEETER_API_URL වෙත ඔබගේ deployed Web App URL එක දාන්න.');
+  const response = await fetch(SMART_MEETER_API_URL, {method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,...payload})});
+  const result = await response.json();
+  if (!result.ok) throw new Error(result.error || 'API error');
+  return result.data;
+}
+function smMessage(t){document.getElementById('authMsg').textContent=t;}
+function smShowApp(){document.getElementById('smAuth').style.display='none';document.getElementById('smLogout').style.display='block';}
+function smShowLogin(){document.getElementById('smAuth').style.display='flex';document.getElementById('smLogout').style.display='none';}
+async function smLoadState(){
+ const d=await smApi('getState',{token:smToken});
+ // Import cloud data into this browser's app state.
+ settings.initial=Number(d.initialFuel)||0; settings.kmPerL=Number(d.kmPerL)||15;
+ refuels=(d.refuels||[]).map(x=>({id:x.id,liters:Number(x.liters)||0,cost:Number(x.cost)||0,date:new Date(x.date).getTime()}));
+ history=(d.trips||[]).map(x=>({id:x.id,startTime:x.startDate?new Date(x.startDate).getTime():Date.now(),endTime:x.endDate?new Date(x.endDate).getTime():Date.now(),distanceKm:Number(x.distanceKm)||0,fuelUsed:Number(x.fuelUsed)||0,durationSeconds:0}));
+ saveJSON(REFUEL_KEY,refuels);saveJSON(STORAGE_KEY,history);saveJSON(SETTINGS_KEY,settings);
+ renderRefuelHistory();renderHistory();updateDashboard();
+}
+async function smAuthAction(action){
+ const username=document.getElementById('smUser').value.trim();const password=document.getElementById('smPass').value;
+ try{smMessage('Connecting...');const d=await smApi(action,{username,password});smToken=d.token;sessionStorage.setItem('sm_token',smToken);await smLoadState();smShowApp();smMessage('Login successful');}
+ catch(e){smMessage(e.message+' (Web App URL / deployment / permissions පරීක්ෂා කරන්න)');}
+}
+document.getElementById('smLogin').addEventListener('click',()=>smAuthAction('login'));
+document.getElementById('smRegister').addEventListener('click',()=>smAuthAction('register'));
+document.getElementById('smLogout').addEventListener('click',async()=>{try{await smApi('logout',{token:smToken});}catch(e){}smToken='';sessionStorage.removeItem('sm_token');smShowLogin();smMessage('Logout වුණා.');});
+// Keep the app behind login until a valid server session is confirmed.
+(async()=>{if(smToken){try{await smLoadState();smShowApp();}catch(e){smToken='';sessionStorage.removeItem('sm_token');smShowLogin();}}else smShowLogin();})();
+</script>
+
 </body>
 </html>
