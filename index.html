@@ -150,6 +150,15 @@ header {
 .controls {display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .controls .full {grid-column:1/-1}
 .help {color:var(--muted);font-size:11px;line-height:1.6;margin:10px 0 0}
+.destination-summary {display:none; margin-top:12px; padding:12px; border:1px solid #2a4560; border-radius:14px; background:linear-gradient(135deg,#0b1c2e,#102943)}
+.destination-summary.show {display:block}
+.destination-name {font-size:12px;color:#dcecff;line-height:1.5;overflow-wrap:anywhere;margin-bottom:10px}
+.destination-metrics {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.destination-metric {background:#071625;border:1px solid #243d55;border-radius:10px;padding:10px;min-width:0}
+.destination-metric span {display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+.destination-metric strong {display:block;color:#fff;font-size:17px;overflow-wrap:anywhere}
+.destination-metric.distance strong {color:var(--cyan)}
+.destination-note {font-size:10px;color:var(--muted);margin-top:9px;line-height:1.5}
 .history-list {display:flex;flex-direction:column;gap:9px}
 .trip {
   background:#0b1929;border:1px solid #23394e;
@@ -302,7 +311,17 @@ footer {color:#6f879f;text-align:center;font-size:11px;padding:18px}
             <button class="btn btn-blue" id="searchBtn">Search</button>
           </div>
         </div>
-        <div id="destinationInfo" class="help">Search for a destination to show a route.</div>
+        <div id="destinationInfo" class="help">ගමනාන්තයක් Search කළාම දුර, යන කාලය සහ ඉන්ධන ඇස්තමේන්තුව මෙතැන පෙන්වයි.</div>
+        <div id="destinationSummary" class="destination-summary" aria-live="polite">
+          <div id="destinationName" class="destination-name"></div>
+          <div class="destination-metrics">
+            <div class="destination-metric distance"><span>📍 Road distance</span><strong id="routeDistance">— km</strong></div>
+            <div class="destination-metric"><span>⏱ Approx. time</span><strong id="routeDuration">— min</strong></div>
+            <div class="destination-metric"><span>⛽ Fuel needed</span><strong id="routeFuel">— L</strong></div>
+            <div class="destination-metric"><span>💰 Estimated cost</span><strong id="routeCost">Set fuel price</strong></div>
+          </div>
+          <div class="destination-note">මාර්ග දුර/කාලය ඇස්තමේන්තු පමණි. ඉන්ධන ගණනය ඔබ ඇතුළත් කරන km/L සහ fuel price අනුවයි.</div>
+        </div>
         <button class="btn btn-dark full" id="clearRouteBtn" style="margin-top:10px">Clear destination</button>
       </section>
     </div>
@@ -406,6 +425,7 @@ let settings = loadJSON(SETTINGS_KEY, {
   tank:8, initial:8, kmPerL:25, fuelPrice:0, vehicle:"🛺"
 });
 let destination = null;
+let destinationRouteMeters = null;
 let isSearching = false;
 
 function loadJSON(key, fallback) {
@@ -552,6 +572,10 @@ function onPosition(position) {
     map.setView(c, 16);
     hasCenteredOnGPS = true;
   }
+  // Keep the map following the vehicle during an active trip.
+  if (trip && currentAccuracy <= 100) {
+    map.panTo(c, {animate:true, duration:0.35});
+  }
   if (trip) {
     const now = position.timestamp || Date.now();
     let meters = 0;
@@ -682,6 +706,23 @@ function updateDashboard() {
   $("fuelBar").style.width = percent+"%";
 }
 
+function updateDestinationSummary(durationSeconds=null) {
+  const summary = $("destinationSummary");
+  if (!destination || destinationRouteMeters === null) {
+    summary.classList.remove("show");
+    return;
+  }
+  const routeKm = destinationRouteMeters / 1000;
+  const fuelNeeded = settings.kmPerL > 0 ? routeKm / settings.kmPerL : 0;
+  const fuelCost = fuelNeeded * settings.fuelPrice;
+  $("destinationName").textContent = destination.name || "Selected destination";
+  $("routeDistance").textContent = routeKm.toFixed(1) + " km";
+  $("routeDuration").textContent = durationSeconds === null ? "—" : (durationSeconds >= 3600 ? `${Math.floor(durationSeconds/3600)} h ${Math.round((durationSeconds%3600)/60)} min` : `${Math.max(1,Math.round(durationSeconds/60))} min`);
+  $("routeFuel").textContent = fuelNeeded.toFixed(2) + " L";
+  $("routeCost").textContent = settings.fuelPrice > 0 ? fuelCost.toFixed(2) : "Set fuel price";
+  summary.classList.add("show");
+}
+
 function readSettingsFromInputs() {
   const tank = validNumber($("tankCapacity").value,NaN);
   const initial = validNumber($("fuelInitial").value,NaN);
@@ -699,6 +740,7 @@ function readSettingsFromInputs() {
   saveJSON(SETTINGS_KEY,settings);
   updateVehicleIcon();
   updateDashboard();
+  updateDestinationSummary();
   hideNotice();
   return true;
 }
@@ -739,7 +781,9 @@ async function searchDestination() {
     destinationMarker = L.marker([destination.lat,destination.lng]).addTo(map)
       .bindPopup("Destination: "+escapeHTML(destination.name)).openPopup();
 
-    $("destinationInfo").textContent = destination.name;
+    $("destinationInfo").textContent = "Route details are shown below.";
+    destinationRouteMeters = null;
+    $("destinationSummary").classList.remove("show");
     if (currentPosition) await drawRoute(currentPosition,destination);
     else {
       map.setView([destination.lat,destination.lng],13);
@@ -761,6 +805,7 @@ async function drawRoute(from,to) {
     const data = await response.json();
     if (data.code !== "Ok" || !data.routes.length) throw new Error("No route");
     const route = data.routes[0];
+    destinationRouteMeters = route.distance;
     const latlngs = route.geometry.coordinates.map(p=>[p[1],p[0]]);
     if (routeLine) map.removeLayer(routeLine);
     routeLine = L.polyline(latlngs,{
@@ -768,8 +813,8 @@ async function drawRoute(from,to) {
     }).addTo(map);
     routeLine.bringToFront();
     map.fitBounds(routeLine.getBounds(),{padding:[45,45]});
-    $("destinationInfo").textContent =
-      `${destination.name} · Road route approx. ${(route.distance/1000).toFixed(1)} km · ${Math.round(route.duration/60)} min`;
+    $("destinationInfo").textContent = "Route found. Details below.";
+    updateDestinationSummary(route.duration);
   } catch {
     showNotice("Route ලබාගත නොහැකි වුණා. Destination marker එක පෙන්වලා තියෙනවා. පසුව නැවත උත්සාහ කරන්න.");
     map.fitBounds(L.latLngBounds([from,to]),{padding:[35,35]});
@@ -782,8 +827,10 @@ function escapeHTML(value) {
 }
 function clearRoute() {
   destination = null;
+  destinationRouteMeters = null;
   $("destinationInput").value = "";
-  $("destinationInfo").textContent = "Search for a destination to show a route.";
+  $("destinationInfo").textContent = "ගමනාන්තයක් Search කළාම දුර, යන කාලය සහ ඉන්ධන ඇස්තමේන්තුව මෙතැන පෙන්වයි.";
+  $("destinationSummary").classList.remove("show");
   if (routeLine) {map.removeLayer(routeLine);routeLine=null;}
   if (destinationMarker) {map.removeLayer(destinationMarker);destinationMarker=null;}
 }
