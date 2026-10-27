@@ -1017,6 +1017,8 @@ window.addEventListener("beforeunload",()=>{
 #smAuth .secondary{background:#263a50;color:#e5f1ff}
 #smAuth .switch{width:100%;margin-top:9px}
 #smAuth #authMsg{min-height:20px;color:#42d9d2;font-size:12px;line-height:1.45;margin:14px 0 0;text-align:center;overflow-wrap:anywhere}
+#smRememberRow{display:flex;align-items:center;gap:9px;margin:13px 0 2px;color:#c4d5e6;font-size:12px;line-height:1.5}
+#smRememberLogin{width:17px!important;height:17px!important;display:inline-block!important;margin:0;accent-color:#23b5a7;flex-shrink:0}
 #smSavedWrap{display:none;margin:0 0 14px;padding-bottom:14px;border-bottom:1px solid #263a50}
 #smSavedList{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #smSavedList button{background:#0b1928;color:#67ded8;border:1px solid #2a7c7b;padding:11px 8px;font-size:12px;overflow-wrap:anywhere}
@@ -1034,6 +1036,7 @@ window.addEventListener("beforeunload",()=>{
   <datalist id="smSavedNames"></datalist>
   <label for="smPass">PASSWORD</label>
   <input id="smPass" type="password" autocomplete="current-password" placeholder="Password" />
+  <label id="smRememberRow"><input id="smRememberLogin" type="checkbox" /> Save Login — මේ device එකේ account එක මතක තබාගන්න</label>
   <button class="primary" id="smLogin">Login</button>
   <button class="secondary switch" id="smRegister">අලුත් ගිණුමක් හදන්න · Register</button>
   <p id="authMsg">Google Apps Script Web App URL එක සකස් කරන්න.</p>
@@ -1044,8 +1047,14 @@ window.addEventListener("beforeunload",()=>{
 // Paste your deployed Google Apps Script Web App URL ending in /exec here.
 const SMART_MEETER_API_URL = 'https://script.google.com/macros/s/AKfycbxUv8nK71CoB8mqrGTqcwXl2MXGMQZDh4zejcOaHpP1f3Z9f9L5zm_0RH5iEjjI2yIBwg/exec';
 const SM_SAVED_USERS_KEY = 'smart_meeter_saved_usernames_v1';
+const SM_SAVED_TOKENS_KEY = 'smart_meeter_saved_tokens_v1';
+function smSavedTokens(){try{return JSON.parse(localStorage.getItem(SM_SAVED_TOKENS_KEY)||'{}')}catch(e){return {}}}
+function smSaveToken(username,token){const all=smSavedTokens();all[username]=token;localStorage.setItem(SM_SAVED_TOKENS_KEY,JSON.stringify(all))}
+function smForgetToken(username){const all=smSavedTokens();delete all[username];localStorage.setItem(SM_SAVED_TOKENS_KEY,JSON.stringify(all))}
 let smToken = sessionStorage.getItem('sm_token') || '';
 let smMode = 'login';
+let smCurrentUser = '';
+try{document.getElementById('smRememberLogin').checked=false}catch(e){}
 async function smApi(action,payload={}){
  if(!SMART_MEETER_API_URL.startsWith('https://script.google.com/macros/s/')) throw new Error('Code එකේ SMART_MEETER_API_URL වෙත ඔබගේ deployed Web App URL එක දාන්න.');
  const response=await fetch(SMART_MEETER_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,...payload})});
@@ -1054,7 +1063,7 @@ async function smApi(action,payload={}){
 function smMsg(t){document.getElementById('authMsg').textContent=t;}
 function smSavedUsers(){try{return JSON.parse(localStorage.getItem(SM_SAVED_USERS_KEY)||'[]').filter(x=>typeof x==='string')}catch(e){return []}}
 function smRememberUser(username){const all=smSavedUsers().filter(x=>x!==username);all.unshift(username);localStorage.setItem(SM_SAVED_USERS_KEY,JSON.stringify(all.slice(0,8)));smRenderSavedUsers()}
-function smRenderSavedUsers(){const users=smSavedUsers();const wrap=document.getElementById('smSavedWrap'),list=document.getElementById('smSavedList'),dl=document.getElementById('smSavedNames');list.replaceChildren();dl.replaceChildren();wrap.style.display=users.length?'block':'none';users.forEach(name=>{const opt=document.createElement('option');opt.value=name;dl.appendChild(opt);const b=document.createElement('button');b.type='button';b.textContent='👤 '+name;b.addEventListener('click',()=>{document.getElementById('smUser').value=name;document.getElementById('smPass').focus();list.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');smMsg('ගිණුම තෝරාගත්තා. Password එක ඇතුළත් කර Login කරන්න.')});list.appendChild(b)})}
+function smRenderSavedUsers(){const users=smSavedUsers();const wrap=document.getElementById('smSavedWrap'),list=document.getElementById('smSavedList'),dl=document.getElementById('smSavedNames');list.replaceChildren();dl.replaceChildren();wrap.style.display=users.length?'block':'none';users.forEach(name=>{const opt=document.createElement('option');opt.value=name;dl.appendChild(opt);const b=document.createElement('button');b.type='button';b.textContent='👤 '+name;b.addEventListener('click',async()=>{document.getElementById('smUser').value=name;list.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');const saved=smSavedTokens()[name];if(saved){b.disabled=true;b.textContent='⏳ '+name;smMsg('Saved account එකට ඇතුළු වෙමින්…');try{smToken=saved;await smApi('getState',{token:smToken});sessionStorage.setItem('sm_token',smToken);smCurrentUser=name;smShowApp();smMsg('Login successful');if('geolocation' in navigator)requestLocation();try{await smLoadState()}catch(e){smMsg('Login වුණා. Cloud data load කිරීම අසාර්ථකයි.')}}catch(e){smForgetToken(name);smToken='';sessionStorage.removeItem('sm_token');document.getElementById('smPass').focus();smMsg('Saved login එක කල් ඉකුත් වී හෝ අවලංගුයි. Password එක දාලා නැවත Login කරන්න.')}finally{b.disabled=false;b.textContent='👤 '+name}}else{document.getElementById('smPass').focus();smMsg('මේ account එකට Save Login සක්‍රිය කරලා නැහැ. Password එක දාලා Login කරන්න.')}});list.appendChild(b)})}
 function smShowApp(){document.getElementById('smAuth').style.display='none';document.getElementById('smLogout').style.display='block';}
 function smShowLogin(){document.getElementById('smAuth').style.display='flex';document.getElementById('smLogout').style.display='none';}
 async function smLoadState(){
@@ -1080,7 +1089,7 @@ async function smAuthAction(action){
    smRememberUser(username);document.getElementById('smPass').value='';smMode='login';
    smMsg('Register සාර්ථකයි. දැන් Login කරන්න.');return;
   }
-  smToken=d.token;sessionStorage.setItem('sm_token',smToken);smRememberUser(username);
+  smToken=d.token;smCurrentUser=username;sessionStorage.setItem('sm_token',smToken);smRememberUser(username);if(document.getElementById('smRememberLogin').checked){smSaveToken(username,smToken)}else{smForgetToken(username)}
   // Show app as soon as authentication succeeds; load cloud data after the overlay is removed.
   smShowApp(); smMsg('Login successful');
   if('geolocation' in navigator) requestLocation();
