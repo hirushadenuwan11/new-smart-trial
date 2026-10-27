@@ -1,1303 +1,880 @@
+
 <!DOCTYPE html>
-<html lang="si" class="dark">
+<html lang="si">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMART MEETER - Three Wheeler Pro Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: { 
-                        brand: { 500: '#00F5D4', 600: '#00BB9E' },
-                        accent: { 500: '#7209B7', 400: '#B5179E' }
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700;900&display=swap');
-        body { font-family: 'Noto Sans Sinhala', sans-serif; }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .animate-fade { animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        .app-glass {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-        .light .app-glass {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(0, 0, 0, 0.08);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#07111f">
+<title>SMART MEETER</title>
 
-        .tech-bg {
-            background: linear-gradient(135deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.95)), 
-                        url('https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=1920&auto=format&fit=crop') center/cover no-repeat;
-            position: relative;
-        }
-        .tech-bg::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle, rgba(0, 245, 212, 0.08) 0%, transparent 70%);
-            pointer-events: none;
-            animation: bgPulse 6s infinite alternate;
-        }
-        @keyframes bgPulse {
-            0% { opacity: 0.4; }
-            100% { opacity: 0.9; }
-        }
+<link rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-        .digital-gauge {
-            background: radial-gradient(circle, rgba(0, 245, 212, 0.08) 0%, rgba(15, 23, 42, 0.95) 75%);
-            box-shadow: inset 0 0 25px rgba(0, 245, 212, 0.15), 0 0 20px rgba(0, 0, 0, 0.5);
-        }
-        .light .digital-gauge {
-            background: radial-gradient(circle, rgba(0, 187, 158, 0.08) 0%, rgba(255, 255, 255, 0.95) 75%);
-            box-shadow: inset 0 0 20px rgba(0, 187, 158, 0.1), 0 10px 25px rgba(0, 0, 0, 0.05);
-        }
-        .pulse-glow { animation: glowPulse 2.5s infinite; }
-        @keyframes glowPulse {
-            0%, 100% { box-shadow: 0 0 15px rgba(0, 245, 212, 0.2); }
-            50% { box-shadow: 0 0 30px rgba(0, 245, 212, 0.45); }
-        }
-
-        /* Premium digital trip meter */
-        .trip-meter-card { position:relative; overflow:hidden; background:linear-gradient(145deg,#071525 0%,#06101e 48%,#0b2230 100%); border:1px solid rgba(34,211,238,.32); box-shadow:0 18px 45px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.06); }
-        .trip-meter-card::before { content:""; position:absolute; inset:-40% -20%; background:radial-gradient(ellipse at 50% 45%,rgba(6,182,212,.17),transparent 58%); pointer-events:none; }
-        .trip-meter-card::after { content:""; position:absolute; left:0; right:0; top:0; height:2px; background:linear-gradient(90deg,transparent,#22d3ee,#34d399,transparent); opacity:.9; }
-        .trip-meter-screen { position:relative; overflow:hidden; border:1px solid rgba(45,212,191,.26); border-radius:24px; padding:20px 12px 17px; background:linear-gradient(180deg,rgba(1,8,17,.96),rgba(5,25,35,.92)); box-shadow:inset 0 0 35px rgba(6,182,212,.09),0 0 24px rgba(6,182,212,.06); }
-        .trip-meter-screen::before { content:""; position:absolute; inset:0; opacity:.14; pointer-events:none; background:repeating-linear-gradient(0deg,transparent 0px,transparent 4px,rgba(34,211,238,.22) 5px); }
-        .trip-meter-value { position:relative; display:block; font-family:'Courier New',monospace; font-size:clamp(2.5rem,11vw,4.15rem); line-height:1.05; font-weight:900; letter-spacing:.035em; color:#a7f3d0; text-shadow:0 0 8px rgba(52,211,153,.55),0 0 24px rgba(34,211,238,.25); font-variant-numeric:tabular-nums; white-space:nowrap; }
-        .trip-meter-unit { position:relative; color:#67e8f9; font-size:.7rem; font-weight:900; letter-spacing:.28em; text-transform:uppercase; }
-        .trip-meter-chip { display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(34,211,238,.25); border-radius:999px; padding:6px 11px; background:rgba(8,145,178,.10); color:#a5f3fc; font-size:10px; font-weight:900; letter-spacing:.08em; }
-        .trip-meter-dot { width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 10px #34d399; }
-        .light .trip-meter-card { background:linear-gradient(145deg,#f0fdff,#e6fffb 70%,#f8fafc); border-color:rgba(8,145,178,.28); }
-        .light .trip-meter-screen { background:linear-gradient(180deg,#f8ffff,#e9fffb); }
-        .light .trip-meter-value { color:#047857; text-shadow:0 0 1px rgba(4,120,87,.25); }
-        .light .trip-meter-unit { color:#0e7490; }
-        .light .trip-meter-chip { color:#0e7490; background:rgba(8,145,178,.07); }
-        @media (prefers-reduced-motion:no-preference) { .trip-meter-dot { animation:meterDot 1.8s infinite; } }
-        @keyframes meterDot { 0%,100%{opacity:1} 50%{opacity:.35} }
-
-        /* SMART MEETER premium redesign: clean instrument-cluster style */
-        body.tech-bg { background: radial-gradient(ellipse at 50% -10%, #173047 0%, #08111f 42%, #050a12 100%) !important; background-attachment: fixed !important; }
-        body.tech-bg::before { background: radial-gradient(circle at 15% 15%, rgba(20,184,166,.10), transparent 32%), radial-gradient(circle at 90% 35%, rgba(59,130,246,.09), transparent 30%) !important; animation:none !important; }
-        header.app-glass { background:rgba(6,13,24,.92)!important; border-color:rgba(148,163,184,.14)!important; box-shadow:0 8px 28px rgba(0,0,0,.22)!important; backdrop-filter:blur(18px); }
-        .app-glass { background:rgba(12,22,37,.88)!important; border:1px solid rgba(148,163,184,.16)!important; box-shadow:0 12px 32px rgba(0,0,0,.16); }
-        .trip-meter-card { padding:clamp(18px,4vw,30px)!important; border:1px solid rgba(45,212,191,.30)!important; border-radius:30px!important; background:linear-gradient(145deg,#101e2e 0%,#0b1725 60%,#0b2028 100%)!important; box-shadow:0 24px 65px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.06)!important; }
-        .trip-meter-card::before { inset:0!important; background:radial-gradient(ellipse at 50% 0%,rgba(20,184,166,.14),transparent 58%)!important; }
-        .trip-meter-card::after { height:3px!important; background:linear-gradient(90deg,transparent,#2dd4bf 20%,#60a5fa 50%,#2dd4bf 80%,transparent)!important; }
-        .trip-meter-screen { border-radius:25px!important; padding:clamp(22px,6vw,36px) 10px 24px!important; border:1px solid rgba(45,212,191,.22)!important; background:linear-gradient(180deg,#030a12,#071722)!important; box-shadow:inset 0 0 40px rgba(20,184,166,.07),0 10px 25px rgba(0,0,0,.22)!important; }
-        .trip-meter-screen::before { opacity:.045!important; background:repeating-linear-gradient(0deg,transparent 0,transparent 5px,rgba(255,255,255,.4) 6px)!important; }
-        .trip-meter-value { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important; font-size:clamp(2.65rem,12vw,5.2rem)!important; letter-spacing:-.055em!important; line-height:1.12!important; color:#b8ffe7!important; text-shadow:0 0 22px rgba(52,211,153,.18)!important; }
-        .trip-meter-unit { letter-spacing:.32em!important; font-size:.68rem!important; color:#6ee7d2!important; }
-        .trip-meter-chip { background:rgba(16,185,129,.09)!important; border-color:rgba(52,211,153,.25)!important; color:#a7f3d0!important; padding:7px 12px!important; }
-        .trip-meter-card button { min-height:54px; border-radius:17px!important; font-size:13px!important; letter-spacing:.01em; box-shadow:0 8px 20px rgba(0,0,0,.18)!important; }
-        .trip-meter-card button:first-child:not(.hidden) { background:linear-gradient(135deg,#6ee7b7,#2dd4bf)!important; }
-        .trip-meter-card button:active { transform:scale(.975); }
-        .trip-meter-card h3 { letter-spacing:-.025em; }
-        .rounded-3xl, .rounded-2xl { transition:border-color .2s ease, box-shadow .2s ease; }
-        button { cursor:pointer; }
-        input, select, textarea { border-radius:14px!important; }
-        .tab-content .app-glass { border-radius:24px!important; }
-        .light body, .light body.tech-bg { background:#f1f7f9!important; }
-        .light .trip-meter-card { background:linear-gradient(145deg,#ffffff,#edfafa)!important; border-color:rgba(13,148,136,.24)!important; box-shadow:0 18px 45px rgba(15,23,42,.10)!important; }
-        .light .trip-meter-screen { background:linear-gradient(180deg,#f8ffff,#eaf9f7)!important; }
-        .light .trip-meter-value { color:#047857!important; text-shadow:none!important; }
-        @media(max-width:380px) { .trip-meter-card { padding:15px!important; } .trip-meter-value { font-size:clamp(2.35rem,11vw,3.2rem)!important; } .trip-meter-screen { padding:20px 5px!important; } }
-        @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
-    </style>
+<style>
+:root {
+  --bg:#07111f;
+  --panel:#101e30;
+  --panel2:#13253a;
+  --line:#263a50;
+  --blue:#2584ff;
+  --cyan:#25d9ef;
+  --green:#13d69a;
+  --red:#ff4968;
+  --muted:#8ea6bf;
+  --text:#f2f7ff;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+button,input {font:inherit}
+button {cursor:pointer}
+.app {max-width:1500px;margin:auto;padding:16px}
+header {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:16px;flex-wrap:wrap
+}
+.brand {display:flex;align-items:center;gap:12px}
+.logo {
+  width:48px;height:48px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#087cff,#20dfd0);
+  border-radius:15px;font-size:27px
+}
+.brand h1 {font-size:21px;margin:0;letter-spacing:1px}
+.brand h1 span {color:var(--cyan)}
+.brand p {margin:4px 0 0;color:var(--muted);font-size:12px}
+.status {
+  display:flex;align-items:center;gap:8px;color:var(--muted);
+  font-size:12px
+}
+.dot {width:9px;height:9px;border-radius:50%;background:#687b90}
+.dot.on {background:var(--green);box-shadow:0 0 12px #13d69a88}
+.layout {
+  display:flex;flex-direction:column;gap:14px
+}
+.map-below {display:flex;flex-direction:column;gap:14px}
+.map-below-grid {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.map-below-grid > .panel {height:100%}
+.panel {
+  background:linear-gradient(145deg,#112137,#0c1929);
+  border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  min-width:0
+}
+.map-wrap {position:relative;height:clamp(390px,61vh,680px)}
+#map {height:100%;width:100%;background:#dce8ed}
+.map-top {
+  position:absolute;z-index:500;top:12px;left:12px;right:12px;
+  display:flex;gap:8px;justify-content:space-between;pointer-events:none
+}
+.map-chip {
+  pointer-events:auto;background:#081729ed;color:white;
+  border:1px solid #334d67;border-radius:12px;padding:10px 12px;
+  font-size:12px;max-width:65%;box-shadow:0 5px 20px #0003
+}
+.map-chip b {display:block;font-size:13px;margin-bottom:3px}
+.map-actions {
+  position:absolute;z-index:500;right:12px;bottom:14px;
+  display:flex;flex-direction:column;gap:8px
+}
+.map-actions button {
+  border:1px solid #cad5df;background:#fff;color:#14243a;
+  border-radius:11px;width:42px;height:42px;font-size:19px
+}
+.vehicle-marker {
+  width:42px;height:42px;border-radius:50%;display:grid;
+  place-items:center;background:#087cff;border:3px solid white;
+  box-shadow:0 3px 18px #0068df80;font-size:23px
+}
+.sidebar {display:flex;flex-direction:column;gap:14px}
+.section {padding:18px}
+.section-title {
+  display:flex;justify-content:space-between;align-items:center;
+  gap:8px;margin-bottom:18px;font-size:15px;font-weight:750
+}
+.pill {
+  border-radius:30px;padding:5px 9px;background:#163c36;
+  color:var(--green);font-size:11px;font-weight:700
+}
+.speed-area {display:flex;align-items:center;gap:14px}
+.speed-ring {
+  width:130px;height:130px;border-radius:50%;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at center,#102137 57%,transparent 59%),
+  conic-gradient(from 220deg,var(--cyan) 0deg,var(--blue) 220deg,#26394d 220deg);
+  position:relative
+}
+.speed-ring strong {font-size:35px;line-height:1.1}
+.speed-ring span {font-size:12px;color:var(--muted);margin-top:5px}
+.stats {flex:1;min-width:0}
+.stat {
+  padding:9px 0;border-bottom:1px solid #223449;
+  display:flex;justify-content:space-between;gap:8px
+}
+.stat:last-child {border-bottom:0}
+.stat label {color:var(--muted);font-size:12px}
+.stat strong {font-size:16px;display:block;margin-top:4px}
+.fuel-grid {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fuel-box {
+  padding:13px;background:#0b1929;border-radius:13px;
+  border:1px solid #22364b
+}
+.fuel-box label {color:var(--muted);font-size:11px}
+.fuel-box strong {display:block;font-size:22px;margin:7px 0}
+.fuel-box small {color:var(--muted);font-size:11px}
+.bar {height:7px;border-radius:10px;background:#263a50;overflow:hidden;margin-top:13px}
+.bar div {height:100%;background:linear-gradient(90deg,var(--green),var(--cyan));width:0%;transition:width .3s}
+.field {display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.field label {font-size:12px;color:var(--muted)}
+.field input {
+  width:100%;min-width:0;background:#091727;border:1px solid #2a4058;
+  border-radius:11px;padding:12px;color:white;outline:none
+}
+.field input:focus {border-color:var(--blue)}
+.search-row {display:flex;gap:7px}
+.search-row input {flex:1;min-width:0}
+.btn {
+  border:0;border-radius:11px;padding:12px 14px;font-weight:750;
+  transition:filter .2s,transform .1s
+}
+.btn:active {transform:scale(.98)}
+.btn:hover {filter:brightness(1.1)}
+.btn-blue {background:var(--blue);color:white}
+.btn-green {background:var(--green);color:#05231b}
+.btn-red {background:var(--red);color:white}
+.btn-dark {background:#1b3047;color:white;border:1px solid #304960}
+.btn:disabled {opacity:.4;cursor:not-allowed}
+.full {width:100%}
+.controls {display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.controls .full {grid-column:1/-1}
+.help {color:var(--muted);font-size:11px;line-height:1.6;margin:10px 0 0}
+.history-list {display:flex;flex-direction:column;gap:9px}
+.trip {
+  background:#0b1929;border:1px solid #23394e;
+  border-radius:12px;padding:12px
+}
+.trip-top {display:flex;justify-content:space-between;gap:10px}
+.trip strong {font-size:13px}
+.trip small {color:var(--muted);font-size:11px}
+.trip p {color:var(--muted);font-size:12px;margin:9px 0 0}
+.trip button {margin-top:9px}
+.empty {color:var(--muted);font-size:13px;text-align:center;padding:18px}
+.notice {
+  display:none;margin:0 0 14px;padding:12px;border-radius:12px;
+  background:#392c17;border:1px solid #79602d;color:#ffdfa0;
+  font-size:13px;line-height:1.5
+}
+.notice.show {display:block}
+footer {color:#6f879f;text-align:center;font-size:11px;padding:18px}
+/* App navigation + working tab visibility */
+.app-tabs {
+  display:flex; gap:8px; padding:7px; margin:0 0 14px;
+  background:#0d1b2b; border:1px solid var(--line); border-radius:15px;
+  position:sticky; top:8px; z-index:1000;
+}
+.app-tab {
+  flex:1; min-width:0; border:1px solid transparent; border-radius:11px;
+  padding:12px 10px; color:var(--muted); background:transparent;
+  font-weight:750; font-size:14px; transition:background .2s,color .2s;
+}
+.app-tab:hover {background:#172b40;color:#fff}
+.app-tab.active {
+  color:#fff; background:linear-gradient(135deg,#087cff,#1264d8);
+  border-color:#3593ff; box-shadow:0 4px 14px #087cff33;
+}
+.tab-hidden {display:none !important}
+.layout.single-panel {display:flex;flex-direction:column}
+.layout.single-panel > .sidebar {display:contents}
+.layout.single-panel > .panel[data-page='map'] {display:none !important}
+@media(max-width:500px) {
+  .app-tabs {gap:4px;padding:5px;top:4px}
+  .app-tab {font-size:12px;padding:11px 3px}
+}
+@media(max-width:850px) {
+  .app {padding:10px}
+  .layout {display:flex;flex-direction:column}
+  .map-below-grid {grid-template-columns:1fr}
+  .map-wrap {height:52vh;min-height:340px}
+  .sidebar {display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  .sidebar .wide {grid-column:1/-1}
+  .speed-ring {width:105px;height:105px}
+  .speed-ring strong {font-size:29px}
+}
+@media(max-width:500px) {
+  .brand h1 {font-size:18px}
+  .logo {width:42px;height:42px}
+  .app {padding:9px}
+  .sidebar {display:flex}
+  .section {padding:14px}
+  .map-wrap {height:48vh;min-height:320px}
+  .speed-area {gap:10px}
+  .speed-ring {width:105px;height:105px}
+  .map-chip {padding:9px;font-size:11px}
+}
+</style>
 </head>
-<body class="tech-bg text-slate-100 light:text-slate-900 min-h-screen selection:bg-brand-500 selection:text-slate-950 transition-colors duration-500">
 
-    <!-- GENERAL WARNING POPUP MODAL -->
-    <div id="warning-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="app-glass border-2 border-amber-500 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
-            <div class="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <h3 class="text-xl font-black text-amber-400 tracking-wide">ලේඛන කල් ඉකුත් වෙමින් පවතී!</h3>
-            <p id="warning-modal-msg" class="text-xs text-slate-300 light:text-slate-600 font-bold leading-relaxed"></p>
-            <button onclick="closeWarningModal()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 font-black py-3.5 rounded-2xl text-sm transition transform active:scale-95 shadow-lg">
-                තේරුණා (OK)
-            </button>
-        </div>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">◉</div>
+      <div>
+        <h1>SMART <span>MEETER</span></h1>
+        <p>Track · Monitor · Save</p>
+      </div>
     </div>
-
-    <!-- LOW FUEL POPUP MODAL -->
-    <div id="low-fuel-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="app-glass border-2 border-red-500 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
-            <div class="w-16 h-16 bg-red-500/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner">
-                <i class="fa-solid fa-gas-pump"></i>
-            </div>
-            <h3 class="text-xl font-black text-red-500 tracking-wide">අවවාදයයි! තෙල් අවසන් වෙමින් පවතී!</h3>
-            <p id="low-fuel-msg" class="text-xs text-slate-300 light:text-slate-600 font-bold leading-relaxed">ටැංකියේ ඉතිරිව ඇත්තේ ලීටර් 1 කටත් වඩා අඩු ප්‍රමාණයකි!</p>
-            <button onclick="closeLowFuelModal()" class="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-3.5 rounded-2xl text-sm transition transform active:scale-95 shadow-lg">
-                තේරුණා (OK)
-            </button>
-        </div>
+    <div class="status">
+      <span id="gpsDot" class="dot"></span>
+      <span id="gpsStatus">GPS not connected</span>
     </div>
+  </header>
 
-    <!-- HEADER -->
-    <header class="app-glass border-b border-slate-800 light:border-slate-200 px-4 py-3.5 flex justify-between items-center sticky top-0 z-40 shadow-xl">
-        <div class="flex items-center space-x-3">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-500 to-emerald-400 flex items-center justify-center text-slate-950 text-xl font-black shadow-lg shadow-brand-500/20 transform hover:rotate-6 transition">
-                <i class="fa-solid fa-gauge-high"></i>
-            </div>
-            <div>
-                <h1 class="text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-cyan-400">SMART MEETER</h1>
-                <span id="sync-status" class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">● Online & Synced</span>
-            </div>
-        </div>
-        <div class="flex items-center space-x-2">
-            <button onclick="toggleTheme()" class="w-10 h-10 rounded-2xl bg-slate-900 light:bg-slate-200 text-amber-400 flex items-center justify-center transition shadow-md">
-                <i id="theme-icon" class="fa-solid fa-sun text-sm"></i>
-            </button>
-            <button onclick="logout()" class="w-10 h-10 rounded-2xl bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition shadow-md" title="මාරු වීම හෝ අයින් වීම">
-                <i class="fa-solid fa-power-off text-sm"></i>
-            </button>
-        </div>
-    </header>
+  <div id="notice" class="notice"></div>
 
-    <!-- AUTH SECTION WITH SAVED VEHICLES QUICK SWITCHER -->
-    <section id="auth-section" class="max-w-md mx-auto mt-8 p-6 app-glass rounded-3xl shadow-2xl border border-brand-500/30 mx-4 animate-fade relative overflow-hidden">
-        <div class="absolute -right-12 -top-12 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
-        
-        <div class="text-center mb-6 space-y-2 relative z-10">
-            <div class="w-16 h-16 bg-gradient-to-tr from-brand-500/20 to-accent-500/20 text-brand-500 rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-inner border border-brand-500/30 pulse-glow">
-                <i class="fa-solid fa-taxi"></i>
-            </div>
-            <h2 id="auth-title" class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-cyan-400">වාහන ලොගින් වීම</h2>
-            <p id="auth-desc" class="text-xs text-slate-400 font-bold">වාහන අංකය සහ මුරපදය ඇතුළත් කරන්න</p>
-        </div>
+  <nav class="app-tabs" aria-label="Main navigation">
+    <button class="app-tab active" data-tab="map">🗺️ Map</button>
+    <button class="app-tab" data-tab="fuel">⛽ Fuel</button>
+    <button class="app-tab" data-tab="history">🕘 History</button>
+  </nav>
 
-        <!-- QUICK SWITCHER FOR SAVED VEHICLES -->
-        <div id="saved-vehicles-container" class="mb-5 hidden space-y-2 relative z-10">
-            <label class="block text-[10px] uppercase font-black tracking-wider text-brand-400">සංරක්ෂිත වාහන (Saved Vehicles - එක් ක්ලික් එකකින් ලොග් වන්න)</label>
-            <div id="saved-vehicles-list" class="grid grid-cols-2 gap-2"></div>
-            <div class="border-b border-slate-700/60 my-3"></div>
+  <main class="layout">
+        <section class="panel" data-page="map">
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-top">
+          <div class="map-chip">
+            <b id="locationTitle">📍 Current location</b>
+            <span id="coordinates">Waiting for GPS…</span>
+          </div>
+          <div class="map-chip" id="mapDistance">0.00 km</div>
         </div>
-
-        <div class="space-y-4 relative z-10">
-            <div>
-                <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">වාහන අංකය (Vehicle No)</label>
-                <input type="text" id="auth-vehicle" placeholder="WP-ABC-1234" class="w-full bg-slate-900/60 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl py-3.5 px-4 text-sm font-black uppercase focus:outline-none focus:border-brand-500 transition">
-            </div>
-            <div>
-                <label class="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1.5">මුරපදය</label>
-                <input type="password" id="auth-pass" placeholder="••••••••" class="w-full bg-slate-900/60 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl py-3.5 px-4 text-sm font-black focus:outline-none focus:border-brand-500 transition">
-            </div>
-            <button type="button" onclick="handleAuth()" id="auth-btn" class="w-full bg-gradient-to-r from-brand-500 to-emerald-400 hover:from-brand-600 hover:to-emerald-500 text-slate-950 font-black py-4 rounded-2xl text-sm shadow-lg shadow-brand-500/20 transition transform active:scale-98 flex items-center justify-center space-x-2">
-                <span id="auth-btn-text">ලොග් වන්න</span>
-                <i id="auth-spinner" class="hidden fa-solid fa-circle-notch fa-spin text-base"></i>
-            </button>
-            <div class="text-center pt-2">
-                <button type="button" onclick="toggleMode()" id="toggle-btn" class="text-xs font-bold text-brand-500 hover:underline transition">
-                    ගිණුමක් නැද්ද? ලියාපදිංචි වන්න
-                </button>
-            </div>
-            <div id="auth-msg" class="text-xs text-center font-black text-red-400"></div>
+        <div class="map-actions">
+          <button id="locateBtn" title="My location" aria-label="My location">◎</button>
+          <button id="zoomBtn" title="Zoom in" aria-label="Zoom in">＋</button>
         </div>
+      </div>
     </section>
-
-    <!-- MAIN DASHBOARD -->
-    <main id="dashboard-section" class="hidden max-w-xl mx-auto p-4 space-y-5 pb-24 animate-fade">
-        
-        <!-- MENU NAVIGATION BAR -->
-        <div class="grid grid-cols-4 gap-1.5 app-glass p-1.5 rounded-2xl shadow-xl border border-slate-800 light:border-slate-200">
-            <button onclick="switchTab('home')" id="menu-home" class="py-2.5 rounded-xl text-xs font-black bg-brand-500 text-slate-950 transition-all flex flex-col items-center justify-center space-y-1 shadow-lg scale-105">
-                <i class="fa-solid fa-gauge text-sm"></i>
-                <span>මීටරය</span>
-            </button>
-            <button onclick="switchTab('refuel')" id="menu-refuel" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1">
-                <i class="fa-solid fa-gas-pump text-sm"></i>
-                <span>තෙල්</span>
-            </button>
-            <button onclick="switchTab('documents')" id="menu-documents" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1">
-                <i class="fa-solid fa-file-shield text-sm"></i>
-                <span>ලේඛන (Docs)</span>
-            </button>
-            <button onclick="switchTab('history')" id="menu-history" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1">
-                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
-                <span>ඉතිහාසය</span>
-            </button>
+    <div class="map-below" data-page="map">
+      <div class="map-below-grid">
+      <section class="panel section" data-page="map">
+        <div class="section-title">
+          <span>◉ Live Trip</span>
+          <span class="pill" id="tripStatus">READY</span>
         </div>
-
-        <!-- TAB 1: HOME PAGE -->
-        <div id="tab-home" class="tab-content space-y-4">
-            
-            <!-- DIGITAL SPEEDOMETER GAUGE DISPLAY -->
-            <div class="app-glass rounded-3xl p-6 shadow-2xl space-y-5 border border-slate-800 light:border-slate-200 pulse-glow">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase tracking-wider text-brand-500 flex items-center space-x-2">
-                        <i class="fa-solid fa-gauge-high"></i>
-                        <span>ඩිජිටල් ඉන්ධන මීටරය</span>
-                    </h3>
-                    <span id="display-vehicle" class="text-[11px] font-black px-3 py-1 rounded-xl bg-slate-900 light:bg-slate-200 text-brand-400 shadow-inner"></span>
-                </div>
-
-                <div class="digital-gauge rounded-3xl p-6 text-center space-y-3 border border-brand-500/30 shadow-inner relative overflow-hidden">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">ඉතිරිව ඇති තෙල් ප්‍රමාණය</span>
-                    <div class="flex items-center justify-center space-x-2">
-                        <span id="stat-fuel" class="text-5xl font-black text-brand-500 tracking-tight">0.0</span>
-                        <span class="text-xl font-bold text-brand-400 mt-3">L</span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/60 light:border-slate-200">
-                        <div>
-                            <span class="text-[9px] font-black uppercase text-slate-400 block mb-0.5">යන්න පුළුවන් දුර</span>
-                            <span id="stat-range" class="text-xl font-black text-cyan-400">0 KM</span>
-                        </div>
-                        <div>
-                            <span class="text-[9px] font-black uppercase text-slate-400 block mb-0.5">ටැංකි ධාරිතාව</span>
-                            <span id="stat-tank-max" class="text-xl font-black text-amber-400">8.0 L</span>
-                        </div>
-                    </div>
-
-                    <div class="w-full bg-slate-900 light:bg-slate-200 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-800 light:border-slate-300 mt-2 shadow-inner">
-                        <div id="fuel-bar" class="bg-gradient-to-r from-brand-500 to-cyan-400 h-full rounded-full transition-all duration-700 shadow-md" style="width: 0%"></div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 bg-slate-950/40 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200">
-                    <div>
-                        <label class="text-[9px] uppercase font-black text-slate-400 block mb-1">මයිලේජ් (KM/L)</label>
-                        <input type="number" id="input-mileage" onchange="updateSettings()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-2.5 text-sm font-black text-amber-400 text-center focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[9px] uppercase font-black text-slate-400 block mb-1">ටැංකි ධාරිතාව (L)</label>
-                        <input type="number" id="input-tank" onchange="updateSettings()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-2.5 text-sm font-black text-cyan-400 text-center focus:outline-none">
-                    </div>
-                </div>
+        <div class="speed-area">
+          <div class="speed-ring">
+            <strong id="speed">0</strong>
+            <span>KM/H</span>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <div><label>Trip Distance</label><strong id="distance">0.00 km</strong></div>
             </div>
-
-            <!-- NEXT SERVICE TRACKER -->
-            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-3 border border-slate-800 light:border-slate-200">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center space-x-2">
-                        <i class="fa-solid fa-oil-can"></i>
-                        <span>ඊළඟ ඔයිල් මාරුවට (Next Service) ඉතිරි දුර</span>
-                    </h3>
-                    <button onclick="resetServiceCounter()" class="bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-xl transition">Reset</button>
-                </div>
-                <div class="bg-slate-950/50 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200 flex justify-between items-center shadow-inner">
-                    <div>
-                        <span id="service-remaining-km" class="text-2xl font-black text-amber-400">1000 KM</span>
-                        <span class="text-[10px] text-slate-400 block font-bold">සීමාව: <span id="service-limit-display">1000</span> KM</span>
-                    </div>
-                    <button onclick="changeServiceLimit()" class="bg-slate-900 light:bg-white text-xs font-black px-3 py-2 rounded-xl border border-slate-700 light:border-slate-300">වෙනස් කරන්න</button>
-                </div>
+            <div class="stat">
+              <div><label>Trip Time</label><strong id="timer">00:00:00</strong></div>
             </div>
-
-            <!-- MANUAL KM CALCULATOR -->
-            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-3.5 border border-slate-800 light:border-slate-200">
-                <h3 class="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center space-x-2">
-                    <i class="fa-solid fa-calculator"></i>
-                    <span>අතින් කිලෝමීටර් (Manual KM) ඇතුළත් කර තෙල් කපා හැරීම</span>
-                </h3>
-                <div class="space-y-3">
-                    <input type="number" id="manual-km-input" oninput="previewManualFuel()" placeholder="ගමන් කළ කිලෝමීටර් (KM) ඇතුළත් කරන්න" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-sm font-black text-purple-400 text-center focus:outline-none">
-                    
-                    <div id="manual-preview-box" class="hidden bg-slate-950/60 light:bg-slate-100 p-3 rounded-xl text-center border border-purple-500/30">
-                        <span class="text-[10px] font-black text-slate-400 uppercase block">අවශ්‍ය වන තෙල් ප්‍රමාණය:</span>
-                        <span id="manual-preview-liters" class="text-lg font-black text-purple-400">0.00 L</span>
-                    </div>
-
-                    <button onclick="deductManualTrip()" class="w-full bg-gradient-to-r from-purple-600 to-accent-500 text-white font-black py-3 rounded-2xl text-xs shadow-lg">
-                        ටැංකියෙන් තෙල් කපා හරින්න (Deduct Fuel)
-                    </button>
-                </div>
+            <div class="stat">
+              <div><label>GPS Accuracy</label><strong id="accuracy">—</strong></div>
             </div>
-
-            <!-- MONTHLY SUMMARY -->
-            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-3 border border-slate-800 light:border-slate-200">
-                <h3 class="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center space-x-2">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>මේ මස සාරාංශය</span>
-                </h3>
-                <div class="grid grid-cols-2 gap-3 text-center">
-                    <div class="bg-slate-950/40 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200">
-                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">මුළු වියදම</span>
-                        <span id="monthly-cost" class="text-base font-black text-amber-400">LKR 0</span>
-                    </div>
-                    <div class="bg-slate-950/40 light:bg-slate-100 p-3.5 rounded-2xl border border-slate-800 light:border-slate-200">
-                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">ගැසූ මුළු තෙල්</span>
-                        <span id="monthly-liters" class="text-base font-black text-brand-500">0.0 L</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PREMIUM DIGITAL GPS TRIP METER -->
-            <div class="trip-meter-card rounded-[2rem] p-5 sm:p-6 shadow-2xl space-y-5 text-center">
-                <div class="relative flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-3 text-left">
-                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-cyan-300 text-xl border border-cyan-300/20 bg-cyan-400/10 shadow-lg shadow-cyan-950/30">
-                            <i class="fa-solid fa-gauge-high"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-base sm:text-lg font-black text-cyan-300 light:text-cyan-800">සජීවී ඩිජිටල් මීටරය</h3>
-                            <p class="text-[10px] sm:text-[11px] text-slate-400 light:text-slate-600 font-bold mt-1">GPS TRIP DISTANCE</p>
-                        </div>
-                    </div>
-                    <span class="trip-meter-chip"><span class="trip-meter-dot"></span> LIVE</span>
-                </div>
-
-                <div class="trip-meter-screen">
-                    <div class="relative flex justify-center items-center gap-2 mb-3 text-cyan-200/70">
-                        <i class="fa-solid fa-location-crosshairs text-xs"></i>
-                        <span class="text-[9px] font-black tracking-[.24em] uppercase">Distance travelled</span>
-                    </div>
-                    <span id="live-km-val" class="trip-meter-value">0.00 KM</span>
-                    <div class="relative mt-3 flex justify-center"><span class="trip-meter-unit">KILOMETERS</span></div>
-                    <div class="relative mt-5 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"></div>
-                    <div class="relative flex items-center justify-center gap-2 mt-3 text-[10px] font-bold text-slate-400 light:text-slate-600">
-                        <i class="fa-solid fa-satellite-dish text-cyan-400"></i>
-                        <span id="trip-status-text" class="text-emerald-300 light:text-emerald-700">සූදානම් තත්වයේ ඇත</span>
-                    </div>
-                </div>
-
-                <div class="relative grid grid-cols-2 gap-3">
-                    <button id="start-trip-btn" onclick="startLiveTrip()" class="w-full bg-gradient-to-r from-emerald-400 to-teal-300 text-slate-950 font-black py-4 px-2 rounded-2xl text-sm shadow-lg shadow-emerald-950/30 transition active:scale-[.98] flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-play"></i><span>ගමන අරඹන්න</span>
-                    </button>
-                    <button id="end-trip-btn" onclick="endLiveTrip()" class="hidden w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-4 px-2 rounded-2xl text-sm shadow-lg transition active:scale-[.98] flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-stop"></i><span>ගමන නවත්වන්න</span>
-                    </button>
-                    <div class="col-span-2 text-[9px] font-bold text-slate-500 light:text-slate-600">ගමන ආරම්භ කිරීමට පෙර GPS Location ON කරන්න</div>
-                </div>
-            </div>
-
+          </div>
         </div>
-
-        <!-- TAB 2: REFUEL INPUT -->
-        <div id="tab-refuel" class="tab-content hidden space-y-4">
-            <div class="app-glass rounded-3xl p-6 shadow-xl space-y-4 border border-slate-800 light:border-slate-200">
-                <h3 class="text-sm font-black uppercase tracking-wider flex items-center space-x-2 text-brand-500">
-                    <i class="fa-solid fa-gas-pump"></i>
-                    <span>තෙල් ගැසීමක් ඇතුළත් කරන්න</span>
-                </h3>
-                <div class="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-4 space-y-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-11 h-11 rounded-xl bg-brand-500/15 text-brand-500 flex items-center justify-center text-xl"><i class="fa-solid fa-camera"></i></div>
-                        <div class="flex-1">
-                            <div class="text-sm font-black">පොම්පයේ L අගය Photo එකෙන් කියවන්න</div>
-                            <p class="text-xs text-slate-400 mt-1">පෙට්‍රල් පොම්පයේ ලීටර් display එකේ පැහැදිලි photo එකක් ගන්න.</p>
-                        </div>
-                    </div>
-                    <input id="pump-photo-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="readPumpPhoto(event)">
-                    <div id="pump-camera-wrap" class="hidden space-y-3">
-                        <video id="pump-camera-video" autoplay playsinline muted class="w-full max-h-72 rounded-xl bg-black object-contain"></video>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button type="button" onclick="capturePumpPhoto()" class="bg-brand-500 text-slate-950 font-black py-3 rounded-xl text-sm"><i class="fa-solid fa-camera mr-2"></i> Photo ගන්න</button>
-                            <button type="button" onclick="closePumpCamera()" class="bg-slate-700 text-white font-bold py-3 rounded-xl text-sm">කැමරාව වසන්න</button>
-                        </div>
-                    </div>
-                    <canvas id="pump-camera-canvas" class="hidden"></canvas>
-                    <button id="pump-camera-open" type="button" onclick="openPumpCamera()" class="w-full bg-slate-800 light:bg-slate-200 border border-slate-700 light:border-slate-300 text-white light:text-slate-900 font-black py-3 rounded-xl text-sm"><i class="fa-solid fa-camera mr-2"></i> කැමරාව විවෘත කරන්න</button>
-                    <button type="button" onclick="document.getElementById('pump-photo-input').click()" class="w-full text-slate-400 border border-slate-700/70 font-bold py-2.5 rounded-xl text-xs"><i class="fa-regular fa-image mr-2"></i> Gallery එකෙන් Photo එකක් තෝරන්න</button>
-                    <img id="pump-photo-preview" class="hidden w-full max-h-56 object-contain rounded-xl bg-black/20" alt="Fuel pump display preview">
-                    <div id="pump-ocr-status" class="text-xs text-slate-400" aria-live="polite">Photo එකෙන් L ගණන කියවීමට සූදානම්.</div>
-                    <p class="text-[10px] text-amber-400">සටහන: OCR කියවීම වැරදි විය හැක. එකතු කිරීමට පෙර L අගය පරීක්ෂා කරන්න.</p>
-                </div>
-                <div class="space-y-3.5">
-                    <div>
-                        <label class="block text-[10px] uppercase font-black text-slate-400 mb-1.5">පෙට්‍රල් ලීටර් ගණන (Photo එකෙන් auto-fill වේ)</label>
-                        <input type="number" id="refuel-liters" step="0.01" min="0.01" placeholder="Photo එකෙන් හඳුනාගත් L ගණන" class="w-full bg-slate-900 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl p-3.5 text-sm font-black focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-black text-slate-400 mb-1.5">ගෙවූ මුදල (LKR)</label>
-                        <input type="number" id="refuel-cost" placeholder="උදා: 1200" class="w-full bg-slate-900 light:bg-slate-100 border border-slate-700 light:border-slate-300 rounded-2xl p-3.5 text-sm font-black focus:outline-none">
-                    </div>
-                    <button onclick="submitRefuel()" class="w-full bg-brand-500 text-slate-950 font-black py-4 rounded-2xl text-sm shadow-lg">
-                        ටැංකියට තෙල් එකතු කරන්න
-                    </button>
-                </div>
-            </div>
+      </section>
+      <section class="panel section wide" data-page="map">
+        <div class="section-title">
+          <span>Trip Controls</span>
         </div>
-
-        <!-- TAB 3: DOCUMENTS -->
-        <div id="tab-documents" class="tab-content hidden space-y-4">
-            <div class="app-glass rounded-3xl p-6 shadow-xl space-y-4 border border-slate-800 light:border-slate-200">
-                <h3 class="text-sm font-black uppercase tracking-wider flex items-center space-x-2 text-amber-400">
-                    <i class="fa-solid fa-file-shield"></i>
-                    <span>වාහන ලියකියවිලි කල් ඉකුත් වන දින (Expiry Dates)</span>
-                </h3>
-                <div class="space-y-4">
-                    <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200 space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-black text-amber-400"><i class="fa-solid fa-smog mr-1.5"></i> දුම් සහතිකය (Emission Test)</span>
-                            <span id="status-emission" class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300">කල් ඇත</span>
-                        </div>
-                        <input type="date" id="date-emission" onchange="saveDocumentDates()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-xs font-black text-cyan-400 focus:outline-none">
-                    </div>
-
-                    <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200 space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-black text-amber-400"><i class="fa-solid fa-shield-heart mr-1.5"></i> රක්ෂණය (Insurance)</span>
-                            <span id="status-insurance" class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300">කල් ඇත</span>
-                        </div>
-                        <input type="date" id="date-insurance" onchange="saveDocumentDates()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-xs font-black text-cyan-400 focus:outline-none">
-                    </div>
-
-                    <div class="bg-slate-950/50 light:bg-slate-100 p-4 rounded-2xl border border-slate-800 light:border-slate-200 space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-black text-amber-400"><i class="fa-solid fa-id-card mr-1.5"></i> ආදායම් බලපත්‍රය (Revenue License)</span>
-                            <span id="status-revenue" class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300">කල් ඇත</span>
-                        </div>
-                        <input type="date" id="date-revenue" onchange="saveDocumentDates()" class="w-full bg-slate-900 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl p-3 text-xs font-black text-cyan-400 focus:outline-none">
-                    </div>
-                </div>
-            </div>
+        <div class="controls">
+          <button class="btn btn-green full" id="startBtn">▶ START TRIP</button>
+          <button class="btn btn-red full" id="endBtn" disabled>■ END TRIP & SAVE</button>
         </div>
-
-        <!-- TAB 4: HISTORY -->
-        <div id="tab-history" class="tab-content hidden space-y-4">
-            <div class="app-glass rounded-3xl p-6 shadow-xl space-y-4 border border-slate-800 light:border-slate-200">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-sm font-black uppercase tracking-wider flex items-center space-x-2 text-amber-400">
-                        <i class="fa-solid fa-clock-rotate-left"></i>
-                        <span>ඉතිහාසය සහ CSV</span>
-                    </h3>
-                    <button onclick="exportToCSV()" class="bg-cyan-500 text-slate-950 text-xs font-black px-3.5 py-2.5 rounded-xl shadow-md flex items-center space-x-1.5">
-                        <i class="fa-solid fa-download"></i>
-                        <span>Export CSV</span>
-                    </button>
-                </div>
-                <div class="overflow-x-auto max-h-80 rounded-2xl border border-slate-800 light:border-slate-200">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-900/80 light:bg-slate-200 text-slate-400 text-[10px] uppercase font-black">
-                            <tr>
-                                <th class="p-3">දිනය / විස්තරය</th>
-                                <th class="p-3">ලීටර්</th>
-                                <th class="p-3">මුදල</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-tbody" class="divide-y divide-slate-800/50 light:divide-slate-200">
-                            <tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold text-xs">වාර්තා හමු නොවීය.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <p class="help" id="tripMessage">Allow location access, then start your trip.</p>
+      </section>
+      </div>
+      <section class="panel section wide" data-page="map">
+        <div class="section-title"><span>📍 Destination</span></div>
+        <div class="field">
+          <label>Search a place or address</label>
+          <div class="search-row">
+            <input id="destinationInput" placeholder="e.g. Colombo Fort">
+            <button class="btn btn-blue" id="searchBtn">Search</button>
+          </div>
         </div>
-
-    </main>
-
-    <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqkQnYlcfKlizdu19yUJYeAF8zasYRKGP3kW7x9x9V3eQwhxMtyfPb6esxm5yFfHUa/exec";
-
-        let isRegisterState = false;
-        let currentVehicle = "";
-        let currentPass = "";
-        let tankCapacity = 8;
-        let mileage = 30;
-        let currentFuel = 0.0;
-        let historyData = [];
-        let totalDrivenKM = 0;
-        let serviceLimit = 1000;
-
-        let watchId = null;
-        let screenWakeLock = null;
-        let totalTripKM = 0;
-        let lastPosition = null;
-        let pendingGPSPositions = [];
-        let alertShownForThisLowFuel = false;
-
-        window.addEventListener('DOMContentLoaded', () => {
-            renderSavedVehicles();
-        });
-
-        // Keep the screen awake during an active trip where the browser supports Screen Wake Lock.
-        async function requestTripWakeLock() {
-            if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
-            try {
-                if (screenWakeLock) return;
-                screenWakeLock = await navigator.wakeLock.request('screen');
-                screenWakeLock.addEventListener('release', () => { screenWakeLock = null; });
-            } catch (err) {
-                console.warn('Screen Wake Lock unavailable:', err);
-            }
-        }
-
-        async function releaseTripWakeLock() {
-            if (screenWakeLock) {
-                try { await screenWakeLock.release(); } catch (err) {}
-                screenWakeLock = null;
-            }
-        }
-
-        document.addEventListener('visibilitychange', () => {
-            if (watchId !== null && document.visibilityState === 'visible') requestTripWakeLock();
-        });
-
-        window.addEventListener('online', () => {
-            document.getElementById('sync-status').innerText = "● Online & Synced";
-            document.getElementById('sync-status').className = "text-[9px] text-emerald-400 font-black uppercase tracking-widest";
-            syncDataToCloud();
-        });
-
-        window.addEventListener('offline', () => {
-            document.getElementById('sync-status').innerText = "● Offline Mode";
-            document.getElementById('sync-status').className = "text-[9px] text-amber-400 font-black uppercase tracking-widest";
-        });
-
-        function getSavedAccounts() {
-            try {
-                return JSON.parse(localStorage.getItem('smart_meeter_saved_vehicles')) || {};
-            } catch(e) {
-                return {};
-            }
-        }
-
-        function saveAccountCredential(vehNo, pass) {
-            let accounts = getSavedAccounts();
-            accounts[vehNo] = pass;
-            localStorage.setItem('smart_meeter_saved_vehicles', JSON.stringify(accounts));
-            renderSavedVehicles();
-        }
-
-        function renderSavedVehicles() {
-            let accounts = getSavedAccounts();
-            let keys = Object.keys(accounts);
-            let container = document.getElementById('saved-vehicles-container');
-            let list = document.getElementById('saved-vehicles-list');
-
-            if(keys.length > 0) {
-                container.classList.remove('hidden');
-                list.innerHTML = keys.map(veh => `
-                    <button type="button" onclick="quickLogin('${veh}', '${accounts[veh]}')" class="bg-slate-900/80 hover:bg-brand-500 hover:text-slate-950 text-brand-400 border border-brand-500/30 py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-between shadow-md">
-                        <span><i class="fa-solid fa-taxi mr-1.5"></i> ${veh}</span>
-                        <i class="fa-solid fa-arrow-right-to-bracket text-[10px]"></i>
-                    </button>
-                `).join('');
-            } else {
-                container.classList.add('hidden');
-            }
-        }
-
-        function quickLogin(veh, pass) {
-            document.getElementById('auth-vehicle').value = veh;
-            document.getElementById('auth-pass').value = pass;
-            handleAuth();
-        }
-
-        function toggleTheme() {
-            const html = document.documentElement;
-            const icon = document.getElementById('theme-icon');
-            html.classList.toggle('dark');
-            html.classList.toggle('light');
-            icon.className = html.classList.contains('dark') ? "fa-solid fa-sun text-sm" : "fa-solid fa-moon text-sm";
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-
-            ['home', 'refuel', 'documents', 'history'].forEach(name => {
-                const btn = document.getElementById(`menu-${name}`);
-                if(name === tabName) {
-                    btn.className = "py-2.5 rounded-xl text-xs font-black bg-brand-500 text-slate-950 transition-all flex flex-col items-center justify-center space-y-1 shadow-lg scale-105";
-                } else {
-                    btn.className = "py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 transition-all flex flex-col items-center justify-center space-y-1";
-                }
-            });
-        }
-
-        function toggleMode() {
-            isRegisterState = !isRegisterState;
-            document.getElementById('auth-title').innerText = isRegisterState ? 'නව වාහන ගිණුමක් තනන්න' : 'වාහන ලොගින් වීම';
-            document.getElementById('auth-desc').innerText = isRegisterState ? 'වාහන අංකය සහ මුරපදයක් සාදාගන්න' : 'වාහන අංකය සහ මුරපදය ඇතුළත් කරන්න';
-            document.getElementById('auth-btn-text').innerText = isRegisterState ? 'ලියාපදිංචි වන්න' : 'ලොග් වන්න';
-            document.getElementById('toggle-btn').innerText = isRegisterState ? 'දැනටමත් ගිණුමක් තිබේද? ලොග් වන්න' : 'ගිණුමක් නැද්ද? ලියාපදිංචි වන්න';
-            document.getElementById('auth-msg').innerText = "";
-        }
-
-        async function handleAuth() {
-            const vehicle = document.getElementById('auth-vehicle').value.trim().toUpperCase();
-            const pass = document.getElementById('auth-pass').value.trim();
-            const msgEl = document.getElementById('auth-msg');
-            const btnText = document.getElementById('auth-btn-text');
-            const spinner = document.getElementById('auth-spinner');
-            const authBtn = document.getElementById('auth-btn');
-
-            if(!vehicle || !pass) {
-                msgEl.innerText = "කරුණාකර සියලුම විස්තර පුරවන්න!";
-                return;
-            }
-
-            msgEl.innerText = "";
-            btnText.innerText = "පරීක්ෂා කරමින් පවතී...";
-            spinner.classList.remove('hidden');
-            authBtn.disabled = true;
-
-            const action = isRegisterState ? "register" : "login";
-
-            try {
-                const res = await fetch(SCRIPT_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: action, phone: vehicle, password: pass })
-                });
-                const data = await res.json();
-                
-                spinner.classList.add('hidden');
-                authBtn.disabled = false;
-                btnText.innerText = isRegisterState ? 'ලියාපදිංචි වන්න' : 'ලොග් වන්න';
-
-                if(data.status === "success") {
-                    saveAccountCredential(vehicle, pass);
-                    if(isRegisterState) {
-                        alert('වාහන ගිණුම සාර්ථකයි! දැන් ලොග් වන්න.');
-                        toggleMode();
-                    } else {
-                        currentVehicle = vehicle;
-                        currentPass = pass;
-                        document.getElementById('display-vehicle').innerText = `🛺 ${vehicle}`;
-                        document.getElementById('auth-section').classList.add('hidden');
-                        document.getElementById('dashboard-section').classList.remove('hidden');
-                        
-                        if(data.data && data.data !== "") {
-                            parseAndLoadCloudPayload(data.data);
-                        } else {
-                            loadOfflineData();
-                        }
-                        checkDocumentExpiryAlerts();
-                    }
-                } else {
-                    msgEl.innerText = data.message || "ප්‍රවේශ වීම අසාර්ථකයි!";
-                }
-            } catch(e) {
-                spinner.classList.add('hidden');
-                authBtn.disabled = false;
-                btnText.innerText = isRegisterState ? 'ලියාපදිංචි වන්න' : 'ලොග් වන්න';
-
-                if(!isRegisterState && vehicle) {
-                    saveAccountCredential(vehicle, pass);
-                    currentVehicle = vehicle;
-                    currentPass = pass;
-                    document.getElementById('display-vehicle').innerText = `🛺 ${vehicle} (Offline)`;
-                    document.getElementById('auth-section').classList.add('hidden');
-                    document.getElementById('dashboard-section').classList.remove('hidden');
-                    loadOfflineData();
-                    checkDocumentExpiryAlerts();
-                } else {
-                    msgEl.innerText = "සම්බන්ධ වීමේ දෝෂයක් සිදු විය (අන්තර්ජාලය පරීක්ෂා කරන්න).";
-                }
-            }
-        }
-
-        function logout() {
-            if (watchId !== null && navigator.geolocation) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            currentVehicle = "";
-            currentPass = "";
-            document.getElementById('dashboard-section').classList.add('hidden');
-            document.getElementById('auth-section').classList.remove('hidden');
-            document.getElementById('auth-vehicle').value = '';
-            document.getElementById('auth-pass').value = '';
-            renderSavedVehicles();
-        }
-
-        function updateSettings() {
-            mileage = Math.max(1, parseFloat(document.getElementById('input-mileage').value) || 30);
-            tankCapacity = Math.max(1, parseFloat(document.getElementById('input-tank').value) || 8);
-            
-            if(currentVehicle) {
-                localStorage.setItem(`mileage_${currentVehicle}`, mileage);
-                localStorage.setItem(`tank_${currentVehicle}`, tankCapacity);
-            }
-            saveAndSync();
-            updateUI();
-        }
-
-        function saveAndSync() {
-            if(!currentVehicle) return;
-            
-            const payload = {
-                mileage: mileage,
-                tankCapacity: tankCapacity,
-                currentFuel: currentFuel,
-                totalDrivenKM: totalDrivenKM,
-                serviceLimit: serviceLimit,
-                historyData: historyData,
-                emission: document.getElementById('date-emission').value,
-                insurance: document.getElementById('date-insurance').value,
-                revenue: document.getElementById('date-revenue').value
-            };
-
-            localStorage.setItem(`app_data_${currentVehicle}`, JSON.stringify(payload));
-            syncDataToCloud();
-        }
-
-        async function syncDataToCloud() {
-            if(!currentVehicle || !navigator.onLine) return;
-
-            const payloadStr = localStorage.getItem(`app_data_${currentVehicle}`);
-            if(!payloadStr) return;
-
-            try {
-                await fetch(SCRIPT_URL, {
-                    method: "POST",
-                    body: JSON.stringify({
-                        action: "save",
-                        phone: currentVehicle,
-                        password: currentPass,
-                        payload: payloadStr
-                    })
-                });
-            } catch(err) {
-                console.log("Cloud sync delayed.");
-            }
-        }
-
-        function loadOfflineData() {
-            if(!currentVehicle) return;
-
-            const savedPayload = localStorage.getItem(`app_data_${currentVehicle}`);
-            if(savedPayload) {
-                parseAndLoadCloudPayload(savedPayload);
-            } else {
-                mileage = 30;
-                tankCapacity = 8;
-                currentFuel = 0.0;
-                totalDrivenKM = 0;
-                serviceLimit = 1000;
-                historyData = [];
-                updateUI();
-            }
-        }
-
-        function parseAndLoadCloudPayload(jsonStr) {
-            try {
-                const data = JSON.parse(jsonStr);
-                mileage = data.mileage || 30;
-                tankCapacity = data.tankCapacity || 8;
-                currentFuel = data.currentFuel || 0.0;
-                totalDrivenKM = data.totalDrivenKM || 0;
-                serviceLimit = data.serviceLimit || 1000;
-                historyData = data.historyData || [];
-
-                if(data.emission) document.getElementById('date-emission').value = data.emission;
-                if(data.insurance) document.getElementById('date-insurance').value = data.insurance;
-                if(data.revenue) document.getElementById('date-revenue').value = data.revenue;
-
-                localStorage.setItem(`app_data_${currentVehicle}`, jsonStr);
-                updateUI();
-            } catch(e) {
-                console.error("Payload parse error");
-            }
-        }
-
-        function saveDocumentDates() {
-            saveAndSync();
-            checkDocumentExpiryAlerts();
-        }
-
-        function checkDocumentExpiryAlerts() {
-            if(!currentVehicle) return;
-            const today = new Date();
-            today.setHours(0,0,0,0);
-
-            const docs = [
-                { name: "දුම් සහතිකය (Emission Test)", id: 'date-emission', statusId: 'status-emission' },
-                { name: "රක්ෂණය (Insurance)", id: 'date-insurance', statusId: 'status-insurance' },
-                { name: "ආදායම් බලපත්‍රය (Revenue License)", id: 'date-revenue', statusId: 'status-revenue' }
-            ];
-
-            let alertMessages = [];
-
-            docs.forEach(doc => {
-                const dateVal = document.getElementById(doc.id).value;
-                const statusEl = document.getElementById(doc.statusId);
-                if(!dateVal) return;
-
-                const expDate = new Date(dateVal);
-                expDate.setHours(0,0,0,0);
-
-                const diffTime = expDate - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if(diffDays < 0) {
-                    statusEl.innerText = `කල් ඉකුත් වී ඇත! (${Math.abs(diffDays)} දින)`;
-                    statusEl.className = "text-[10px] font-black px-2.5 py-1 rounded-xl bg-red-500/20 text-red-500 animate-pulse";
-                    alertMessages.push(`${doc.name} කල් ඉකුත් වී දින ${Math.abs(diffDays)}ක් වේ!`);
-                } else if(diffDays <= 2) {
-                    statusEl.innerText = `තව දින ${diffDays} යි!`;
-                    statusEl.className = "text-[10px] font-black px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-400 animate-bounce";
-                    alertMessages.push(`${doc.name} කල් ඉකුත් වීමට ඇත්තේ තව දින ${diffDays} කි!`);
-                } else {
-                    statusEl.innerText = `තව දින ${diffDays} යි`;
-                    statusEl.className = "text-[10px] font-black px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-400";
-                }
-            });
-
-            if(alertMessages.length > 0) {
-                document.getElementById('warning-modal-msg').innerHTML = alertMessages.join('<br>');
-                document.getElementById('warning-modal').classList.remove('hidden');
-            }
-        }
-
-        function closeWarningModal() {
-            document.getElementById('warning-modal').classList.add('hidden');
-        }
-
-        function resetServiceCounter() {
-            if(confirm('ඔබ ඔයිල් මාරු කිරීම සිදුකළ බවට Reset කිරීමට අවශ්‍යද?')) {
-                totalDrivenKM = 0;
-                saveAndSync();
-                updateUI();
-                alert('Next Service කවුන්ටරය නැවත 0 සිට ඇරඹුණි!');
-            }
-        }
-
-        function changeServiceLimit() {
-            const newLimit = prompt('ඔයිල් මාරු කළ යුතු කිලෝමීටර් සීමාව ඇතුළත් කරන්න (උදා: 1000 හෝ 2000):', serviceLimit);
-            if(newLimit && !isNaN(newLimit)) {
-                serviceLimit = parseFloat(newLimit);
-                saveAndSync();
-                updateUI();
-            }
-        }
-
-        function previewManualFuel() {
-            const manualKM = parseFloat(document.getElementById('manual-km-input').value);
-            const previewBox = document.getElementById('manual-preview-box');
-            const previewLiters = document.getElementById('manual-preview-liters');
-
-            if(!manualKM || manualKM <= 0) {
-                previewBox.classList.add('hidden');
-                return;
-            }
-            const fuelNeeded = manualKM / mileage;
-            previewLiters.innerText = `${fuelNeeded.toFixed(2)} L (ප්‍රමාණය)`;
-            previewBox.classList.remove('hidden');
-        }
-
-        function deductManualTrip() {
-            const manualKM = parseFloat(document.getElementById('manual-km-input').value);
-            if(!manualKM || manualKM <= 0) {
-                alert('කරුණාකර නිවැරදි කිලෝමීටර් (KM) ප්‍රමාණයක් ඇතුළත් කරන්න!');
-                return;
-            }
-
-            const fuelNeeded = manualKM / mileage;
-            currentFuel = Math.max(0, currentFuel - fuelNeeded);
-            totalDrivenKM += manualKM;
-            const dateStr = new Date().toLocaleString();
-            const logDesc = `${dateStr} (අතින් දුර: ${manualKM.toFixed(1)}KM)`;
-
-            historyData.push({ date: logDesc, liters: -parseFloat(fuelNeeded.toFixed(2)), cost: 0, currentFuel: currentFuel });
-            saveAndSync();
-            updateUI();
-
-            alert(`සාර්ථකයි! ගමන් කළ දුර: ${manualKM.toFixed(1)} KM. අඩු වූ තෙල්: ${fuelNeeded.toFixed(2)} L.`);
-            document.getElementById('manual-km-input').value = '';
-            document.getElementById('manual-preview-box').classList.add('hidden');
-        }
-
-        let pumpCameraStream = null;
-
-        async function openPumpCamera() {
-            const status = document.getElementById('pump-ocr-status');
-            const wrap = document.getElementById('pump-camera-wrap');
-            const video = document.getElementById('pump-camera-video');
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                status.textContent = 'මෙම browser එකේ direct camera පහසුකම නැහැ. HTTPS website එකෙන් විවෘත කර Chrome permission ලබාදී නැවත උත්සාහ කරන්න.';
-                document.getElementById('pump-photo-input').click();
-                return;
-            }
-            try {
-                closePumpCamera();
-                pumpCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-                video.srcObject = pumpCameraStream;
-                wrap.classList.remove('hidden');
-                document.getElementById('pump-camera-open').classList.add('hidden');
-                status.textContent = 'කැමරාව සූදානම්. පොම්පයේ L ගණන පැහැදිලිව frame එකට ගෙන Photo ගන්න.';
-                await video.play();
-            } catch (err) {
-                console.error(err);
-                status.textContent = 'කැමරාව විවෘත කළ නොහැක. Website එක HTTPS ද යන්නත්, Chrome camera permission Allow කර ඇතිද යන්නත් පරීක්ෂා කරන්න.';
-                wrap.classList.add('hidden');
-                document.getElementById('pump-camera-open').classList.remove('hidden');
-            }
-        }
-
-        function closePumpCamera() {
-            if (pumpCameraStream) {
-                pumpCameraStream.getTracks().forEach(track => track.stop());
-                pumpCameraStream = null;
-            }
-            const video = document.getElementById('pump-camera-video');
-            if (video) video.srcObject = null;
-            const wrap = document.getElementById('pump-camera-wrap');
-            if (wrap) wrap.classList.add('hidden');
-            const openBtn = document.getElementById('pump-camera-open');
-            if (openBtn) openBtn.classList.remove('hidden');
-        }
-
-        function capturePumpPhoto() {
-            const video = document.getElementById('pump-camera-video');
-            const canvas = document.getElementById('pump-camera-canvas');
-            const status = document.getElementById('pump-ocr-status');
-            if (!video.videoWidth || !video.videoHeight) {
-                status.textContent = 'කැමරාව සූදානම් වනතුරු තත්පරයක් රැඳී සිටින්න.';
-                return;
-            }
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(blob => {
-                if (!blob) {
-                    status.textContent = 'Photo එක ගන්න බැරි වුණා. නැවත උත්සාහ කරන්න.';
-                    return;
-                }
-                const file = new File([blob], 'fuel-pump-photo.jpg', { type: 'image/jpeg' });
-                closePumpCamera();
-                readPumpPhoto({ target: { files: [file] } });
-            }, 'image/jpeg', 0.92);
-        }
-
-        let pumpOcrBusy = false;
-        async function readPumpPhoto(event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file || pumpOcrBusy) return;
-            pumpOcrBusy = true;
-            const status = document.getElementById('pump-ocr-status');
-            const preview = document.getElementById('pump-photo-preview');
-            preview.src = URL.createObjectURL(file);
-            preview.classList.remove('hidden');
-            let worker = null;
-            const setStatus = (message) => { status.textContent = message; };
-            const timeout = (promise, ms, message) => Promise.race([
-                promise,
-                new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))
-            ]);
-            try {
-                setStatus('Photo එක ලැබුණා. OCR engine එක පරීක්ෂා කරමින්...');
-                if (!window.Tesseract) {
-                    await timeout(new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-                        script.onload = resolve;
-                        script.onerror = () => reject(new Error('OCR script එක download වුණේ නැහැ.'));
-                        document.head.appendChild(script);
-                    }), 20000, 'OCR script එක load වීමට වැඩි කාලයක් ගියා.');
-                }
-                if (!window.Tesseract) throw new Error('OCR engine එක ආරම්භ වුණේ නැහැ.');
-                setStatus('OCR engine එක ආරම්භ කරමින්... Internet connection එක අනුව තත්පර 10–60ක් ගත විය හැක.');
-                worker = await timeout(Tesseract.createWorker('eng', 1, {
-                    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-                    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
-                    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-                    logger: m => {
-                        if (m.status === 'loading tesseract core') setStatus('OCR engine එක load වෙමින්...');
-                        else if (m.status === 'loading language traineddata') setStatus('English number reader එක download වෙමින්...');
-                        else if (m.status === 'initializing api') setStatus('OCR සූදානම් කරමින්...');
-                        else if (m.status === 'recognizing text') setStatus(`Photo එක කියවමින්... ${Math.round((m.progress || 0) * 100)}%`);
-                    }
-                }), 60000, 'OCR engine එක ආරම්භ වීමට වැඩි කාලයක් ගියා. Internet/CDN සම්බන්ධතාවය පරීක්ෂා කරන්න.');
-                const result = await timeout(worker.recognize(file), 60000, 'Photo එක කියවීමට වැඩි කාලයක් ගියා. Display එකට ළඟින් පැහැදිලි photo එකක් ගෙන නැවත උත්සාහ කරන්න.');
-                const raw = (result.data.text || '').replace(/,/g, '.');
-                const matches = raw.match(/\d+(?:\.\d{1,3})?/g) || [];
-                const nums = matches.map(v => Number(v)).filter(v => Number.isFinite(v) && v > 0 && v <= 1000);
-                if (!nums.length) {
-                    setStatus('L ගණන හඳුනාගන්න බැරි වුණා. Display එකට ළඟින්, පැහැදිලි photo එකක් ගන්න.');
-                    return;
-                }
-                const litersGuess = nums.find(v => v <= 100) ?? nums[0];
-                document.getElementById('refuel-liters').value = litersGuess.toFixed(2).replace(/\.?0+$/, '');
-                setStatus(`හඳුනාගත් අගය: ${litersGuess} L. පොම්පයේ L අගය සමඟ සසඳා තහවුරු කරන්න. OCR කියවීම: ${raw.trim().slice(0, 100)}`);
-            } catch (err) {
-                console.error(err);
-                setStatus((err && err.message) ? `Photo කියවීම අසාර්ථකයි: ${err.message} කරුණාකර Internet පරීක්ෂා කර නැවත උත්සාහ කරන්න, නැත්නම් L අගය අතින් ඇතුළත් කරන්න.` : 'Photo කියවීම අසාර්ථකයි. L අගය අතින් ඇතුළත් කරන්න.');
-            } finally {
-                if (worker) { try { await worker.terminate(); } catch (_) {} }
-                pumpOcrBusy = false;
-            }
-        }
-
-        function submitRefuel() {
-            const liters = parseFloat(document.getElementById('refuel-liters').value);
-            const cost = parseFloat(document.getElementById('refuel-cost').value);
-            if(!liters || !cost) { alert('කරුණාකර ලීටර් සහ මුදල නිවැරදිව ඇතුළත් කරන්න'); return; }
-
-            currentFuel = Math.min(tankCapacity, currentFuel + liters);
-            if(currentFuel > 1.0) alertShownForThisLowFuel = false;
-
-            const dateStr = new Date().toLocaleString();
-            historyData.push({ date: dateStr, liters: liters, cost: cost, currentFuel: currentFuel });
-            saveAndSync();
-            updateUI();
-
-            document.getElementById('refuel-liters').value = '';
-            document.getElementById('refuel-cost').value = '';
-            alert('තෙල් ගැසීම සාර්ථකව එකතු විය!');
-            switchTab('home');
-        }
-
-        function exportToCSV() {
-            if(historyData.length === 0) { alert('ඩේටා නොමැත!'); return; }
-            let csvContent = "data:text/csv;charset=utf-8,Date/Details,Liters,Cost(LKR),CurrentFuel\n";
-            historyData.forEach(row => {
-                csvContent += `"${row.date}",${row.liters},${row.cost},${row.currentFuel}\n`;
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `smart_meeter_history_${currentVehicle}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * (Math.PI / 180);
-            const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-        }
-
-        async function startLiveTrip() {
-            if (!navigator.geolocation) {
-                alert("මෙම browser එක GPS සඳහා සහය නොදක්වයි. iPhone Safari හෝ Android Chrome යාවත්කාලීන කරන්න.");
-                return;
-            }
-            if (!window.isSecureContext && location.protocol !== "file:") {
-                alert("GPS භාවිතයට HTTPS website එකක් අවශ්‍යයි. Website එක HTTPS හරහා විවෘත කරන්න.");
-                return;
-            }
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-
-            await requestTripWakeLock();
-            totalTripKM = 0;
-            lastPosition = null;
-            pendingGPSPositions = [];
-            alertShownForThisLowFuel = false;
-            document.getElementById('live-km-val').innerText = '0.00 KM';
-            document.getElementById('trip-status-text').innerText = 'GPS ස්ථානය ලබාගනිමින්...';
-            document.getElementById('start-trip-btn').classList.add('hidden');
-            document.getElementById('end-trip-btn').classList.remove('hidden');
-
-            watchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    const c = position.coords;
-                    const current = {
-                        lat: c.latitude,
-                        lng: c.longitude,
-                        accuracy: Number.isFinite(c.accuracy) ? c.accuracy : 9999,
-                        speed: Number.isFinite(c.speed) ? c.speed : null,
-                        time: position.timestamp || Date.now()
-                    };
-
-                    // Indoor/weak fixes are ignored, but allow ordinary outdoor phone GPS variation.
-                    if (current.accuracy > 35) {
-                        document.getElementById('trip-status-text').innerText =
-                            `GPS සංඥාව දුර්වලයි (±${Math.round(current.accuracy)}m). එළිමහන් ස්ථානයක සිටින්න.`;
-                        return;
-                    }
-
-                    document.getElementById('trip-status-text').innerText =
-                        `GPS සම්බන්ධයි (±${Math.round(current.accuracy)}m). හෙමින් ගමනත් ගණනය කරමින්...`;
-
-                    if (!lastPosition) {
-                        lastPosition = current;
-                        return;
-                    }
-
-                    const distKM = calculateDistance(lastPosition.lat, lastPosition.lng, current.lat, current.lng);
-                    const distM = distKM * 1000;
-                    const elapsedSec = Math.max(1, (current.time - lastPosition.time) / 1000);
-
-                    // අසාමාන්‍ය GPS jump එකක් හෝ භෞතිකව කළ නොහැකි වේගයක් දුරට එකතු නොකරන්න.
-                    const maxPlausibleM = Math.max(35, elapsedSec * 45);
-                    if (!Number.isFinite(distM) || distM > maxPlausibleM) {
-                        pendingGPSPositions = [];
-                        lastPosition = current;
-                        document.getElementById('trip-status-text').innerText = 'GPS ස්ථානය නැවත තහවුරු කරමින්...';
-                        return;
-                    }
-
-                    // Keep the original anchor while movement is uncertain. Use net displacement
-                    // from the anchor (not every GPS zig-zag) so stationary drift does not add up.
-                    const reportedMoving = current.speed !== null && current.speed >= 0.7;
-                    const accuracyThreshold = (lastPosition.accuracy + current.accuracy) * 0.20;
-                    // Stronger stationary-drift filter: phone GPS may wander several metres
-                    // even when the vehicle is parked. Keep the threshold modest for real
-                    // movement reported by GPS, but require a larger net displacement otherwise.
-                    const movementThresholdM = reportedMoving
-                        ? Math.max(3.0, Math.min(5.0, accuracyThreshold))
-                        : Math.max(10.0, Math.min(14.0, accuracyThreshold));
-
-                    if (distM < movementThresholdM) {
-                        // Keep a short history for slow movement; don't move the anchor on GPS jitter.
-                        pendingGPSPositions.push(current);
-                        if (pendingGPSPositions.length > 6) pendingGPSPositions.shift();
-                        return;
-                    }
-
-                    pendingGPSPositions.push(current);
-                    if (pendingGPSPositions.length > 6) pendingGPSPositions.shift();
-
-                    // Require repeated fixes that agree on real net movement. When GPS speed
-                    // is unavailable/near zero, use four recent fixes and stronger consistency
-                    // checks so random stationary wandering is less likely to add distance.
-                    const candidateDistances = pendingGPSPositions.map(p =>
-                        calculateDistance(lastPosition.lat, lastPosition.lng, p.lat, p.lng) * 1000
-                    );
-                    const meaningful = candidateDistances.filter(d => d >= movementThresholdM);
-                    const requiredFixes = reportedMoving ? 3 : 4;
-                    if (meaningful.length < requiredFixes) return;
-
-                    const recent = pendingGPSPositions.slice(reportedMoving ? -3 : -4);
-                    const recentDistances = recent.map(p =>
-                        calculateDistance(lastPosition.lat, lastPosition.lng, p.lat, p.lng) * 1000
-                    );
-                    let progressing;
-                    if (reportedMoving) {
-                        progressing = recentDistances.length === 3 &&
-                            recentDistances[2] >= movementThresholdM &&
-                            recentDistances[1] >= movementThresholdM * 0.70 &&
-                            recentDistances[2] >= recentDistances[0] * 0.80;
-                    } else {
-                        const aboveThreshold = recentDistances.filter(d => d >= movementThresholdM).length;
-                        const endDistance = recentDistances[recentDistances.length - 1];
-                        const startDistance = recentDistances[0];
-                        progressing = recentDistances.length === 4 && aboveThreshold >= 3 &&
-                            endDistance >= movementThresholdM &&
-                            endDistance >= startDistance * 0.90 &&
-                            Math.max(...recentDistances) - Math.min(...recentDistances) >= 2.0;
-                    }
-                    if (!progressing) return;
-
-                    // Add only confirmed net displacement, not noisy point-to-point zig-zags.
-                    const confirmedDistanceM = distM;
-                    totalTripKM += confirmedDistanceM / 1000;
-                    lastPosition = current;
-                    pendingGPSPositions = [];
-                    document.getElementById('live-km-val').innerText = `${totalTripKM.toFixed(2)} KM`;
-
-                    const fuelNeeded = mileage > 0 ? totalTripKM / mileage : 0;
-                    const tempFuel = Math.max(0, currentFuel - fuelNeeded);
-                    if (tempFuel <= 1.0 && !alertShownForThisLowFuel) showLowFuelModal(tempFuel);
-                },
-                (error) => {
-                    let message = 'GPS දෝෂයක් ඇතිවිය.';
-                    if (error.code === 1) message = 'Location අවසරය ලබා දෙන්න. Browser settings පරීක්ෂා කරන්න.';
-                    else if (error.code === 2) message = 'GPS ස්ථානය ලබාගත නොහැක. Phone Location සක්‍රිය කරන්න.';
-                    else if (error.code === 3) message = 'GPS ප්‍රතිචාරය ප්‍රමාදයි. විවෘත ස්ථානයක සිට නැවත උත්සාහ කරන්න.';
-                    document.getElementById('trip-status-text').innerText = message;
-                    console.warn('SMART MEETER geolocation error:', error.code, error.message);
-                },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
-            );
-        }
-
-        async function endLiveTrip() {
-            if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-            await releaseTripWakeLock();
-
-            document.getElementById('start-trip-btn').classList.remove('hidden');
-            document.getElementById('end-trip-btn').classList.add('hidden');
-
-            if (totalTripKM < 0.1) {
-                alert("ගමන් කළ දුර ඉතාම අඩුය!");
-                document.getElementById('trip-status-text').innerText = "සූදානම් තත්වයේ ඇත";
-                document.getElementById('live-km-val').innerText = `0.00 KM`;
-                return;
-            }
-
-            const fuelNeeded = totalTripKM / mileage;
-            currentFuel = Math.max(0, currentFuel - fuelNeeded);
-            totalDrivenKM += totalTripKM;
-            const dateStr = new Date().toLocaleString();
-            const logDesc = `${dateStr} (ජීපීඑස් ගමන: ${totalTripKM.toFixed(1)}KM)`;
-
-            historyData.push({ date: logDesc, liters: -parseFloat(fuelNeeded.toFixed(2)), cost: 0, currentFuel: currentFuel });
-            saveAndSync();
-            updateUI();
-
-            alert(`ගමන සාර්ථකයි! ගිය දුර: ${totalTripKM.toFixed(1)} KM. අඩු වූ තෙල්: ${fuelNeeded.toFixed(2)} L.`);
-            totalTripKM = 0;
-            document.getElementById('live-km-val').innerText = `0.00 KM`;
-            document.getElementById('trip-status-text').innerText = "සූදානම් තත්වයේ ඇත";
-        }
-
-        function showLowFuelModal(liters) {
-            alertShownForThisLowFuel = true;
-            document.getElementById('low-fuel-msg').innerText = `ටැංකියේ ඉතිරිව ඇත්තේ ලීටර් ${liters.toFixed(2)} ක් පමණි! කරුණාකර තෙල් ගහගන්න.`;
-            document.getElementById('low-fuel-modal').classList.remove('hidden');
-        }
-
-        function closeLowFuelModal() {
-            document.getElementById('low-fuel-modal').classList.add('hidden');
-        }
-
-        function updateUI() {
-            document.getElementById('input-mileage').value = mileage;
-            document.getElementById('input-tank').value = tankCapacity;
-
-            const fuelStatEl = document.getElementById('stat-fuel');
-            fuelStatEl.innerText = currentFuel.toFixed(1);
-            document.getElementById('stat-tank-max').innerText = `${tankCapacity.toFixed(1)} L`;
-
-            if (currentFuel <= 1.0) {
-                fuelStatEl.className = "text-5xl font-black text-red-500 animate-pulse tracking-tight";
-                if (!alertShownForThisLowFuel && currentFuel > 0) showLowFuelModal(currentFuel);
-            } else {
-                fuelStatEl.className = "text-5xl font-black text-brand-500 tracking-tight";
-            }
-
-            const range = currentFuel * mileage;
-            document.getElementById('stat-range').innerText = `${range.toFixed(0)} KM`;
-            
-            const pct = Math.min(100, Math.max(0, (currentFuel / tankCapacity) * 100));
-            document.getElementById('fuel-bar').style.width = `${pct}%`;
-
-            let remainingServiceKM = Math.max(0, serviceLimit - totalDrivenKM);
-            document.getElementById('service-remaining-km').innerText = `${remainingServiceKM.toFixed(0)} KM`;
-            document.getElementById('service-limit-display').innerText = serviceLimit;
-
-            let mCost = 0;
-            let mLiters = 0;
-            historyData.forEach(item => {
-                if(item.liters > 0) {
-                    mCost += parseFloat(item.cost) || 0;
-                    mLiters += parseFloat(item.liters) || 0;
-                }
-            });
-            document.getElementById('monthly-cost').innerText = `LKR ${mCost.toLocaleString()}`;
-            document.getElementById('monthly-liters').innerText = `${mLiters.toFixed(1)} L`;
-
-            const tbody = document.getElementById('history-tbody');
-            if(historyData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400 font-bold text-xs">වාර්තා හමු නොවීය.</td></tr>`;
-            } else {
-                tbody.innerHTML = historyData.slice().reverse().map(item => `
-                    <tr class="hover:bg-slate-900/40 light:hover:bg-slate-100 transition">
-                        <td class="p-3 font-bold text-xs">${item.date}</td>
-                        <td class="p-3 ${item.liters > 0 ? 'text-brand-500' : 'text-red-400'} font-black text-xs">${item.liters > 0 ? '+' : ''}${item.liters} L</td>
-                        <td class="p-3 font-bold text-xs">${item.cost > 0 ? 'LKR ' + item.cost : '-'}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-    </script>
+        <div id="destinationInfo" class="help">Search for a destination to show a route.</div>
+        <button class="btn btn-dark full" id="clearRouteBtn" style="margin-top:10px">Clear destination</button>
+      </section>
+    </div>
+    <aside class="sidebar">
+
+
+      <section class="panel section" data-page="fuel">
+        <div class="section-title"><span>⛽ Fuel Information</span></div>
+        <div class="fuel-grid">
+          <div class="fuel-box">
+            <label>Fuel Remaining</label>
+            <strong id="fuelRemaining">— L</strong>
+            <small id="fuelPercent">Set fuel level below</small>
+          </div>
+          <div class="fuel-box">
+            <label>Estimated Range</label>
+            <strong id="range">— km</strong>
+            <small>Based on km/L</small>
+          </div>
+          <div class="fuel-box">
+            <label>Fuel Used</label>
+            <strong id="fuelUsed">0.00 L</strong>
+            <small>Estimated this trip</small>
+          </div>
+          <div class="fuel-box">
+            <label>Efficiency</label>
+            <strong id="efficiencyLabel">— km/L</strong>
+            <small>Your vehicle setting</small>
+          </div>
+        </div>
+        <div class="bar"><div id="fuelBar"></div></div>
+      </section>
+
+
+
+      <section class="panel section wide" data-page="fuel">
+        <div class="section-title"><span>⚙ Vehicle & Fuel Settings</span></div>
+        <div class="field">
+          <label>Vehicle type</label>
+          <select id="vehicleType" class="field input" style="background:#091727;color:white;border:1px solid #2a4058;border-radius:11px;padding:12px">
+            <option value="🏍️">Motorbike</option>
+            <option value="🛺" selected>Three-wheeler</option>
+            <option value="🚗">Car</option>
+            <option value="🚐">Van</option>
+            <option value="🚌">Bus</option>
+            <option value="🚚">Truck</option>
+          </select>
+        </div>
+        <div class="controls">
+          <div class="field">
+            <label>Tank capacity (L)</label>
+            <input type="number" id="tankCapacity" min="0.1" step="0.1" value="8">
+          </div>
+          <div class="field">
+            <label>Fuel currently in tank (L)</label>
+            <input type="number" id="fuelInitial" min="0" step="0.1" value="8">
+          </div>
+          <div class="field">
+            <label>Efficiency (km/L)</label>
+            <input type="number" id="kmPerL" min="0.1" step="0.1" value="25">
+          </div>
+          <div class="field">
+            <label>Fuel price per litre</label>
+            <input type="number" id="fuelPrice" min="0" step="0.01" value="0">
+          </div>
+        </div>
+        <button class="btn btn-dark full" id="saveSettingsBtn">Save settings</button>
+        <p class="help">Fuel values are estimates. Actual fuel use depends on traffic, driving style and vehicle condition.</p>
+      </section>
+
+
+
+      <section class="panel section wide" data-page="history">
+        <div class="section-title">
+          <span>Trip History</span>
+          <button class="btn btn-dark" id="exportBtn">Export JSON</button>
+        </div>
+        <div class="history-list" id="historyList"></div>
+        <button class="btn btn-dark full" id="clearHistoryBtn" style="margin-top:10px">Clear trip history</button>
+      </section>
+    </aside>
+  </main>
+  <footer>SMART MEETER · GPS Trip Tracker · Map © OpenStreetMap contributors</footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const STORAGE_KEY = "smart-meeter-trips-v1";
+const SETTINGS_KEY = "smart-meeter-settings-v1";
+
+let map, vehicleMarker, currentPosition = null, hasCenteredOnGPS = false;
+let travelledLine = null, routeLine = null, destinationMarker = null;
+let trip = null, gpsWatch = null, timerInterval = null;
+let totalMeters = 0, previousPoint = null;
+let lastGpsTime = 0, lastGoodSpeed = 0, currentAccuracy = null;
+let history = loadJSON(STORAGE_KEY, []);
+let settings = loadJSON(SETTINGS_KEY, {
+  tank:8, initial:8, kmPerL:25, fuelPrice:0, vehicle:"🛺"
+});
+let destination = null;
+let isSearching = false;
+
+function loadJSON(key, fallback) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key));
+    return value ?? fallback;
+  } catch { return fallback; }
+}
+function saveJSON(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    showNotice("Could not save data. Browser storage may be full or disabled.");
+  }
+}
+function showNotice(message) {
+  $("notice").textContent = message;
+  $("notice").classList.add("show");
+}
+function hideNotice() { $("notice").classList.remove("show"); }
+
+function validNumber(value, fallback=0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function haversine(a, b) {
+  const rad = x => x * Math.PI / 180;
+  const dLat = rad(b.lat-a.lat), dLon = rad(b.lng-a.lng);
+  const x = Math.sin(dLat/2)**2 +
+    Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
+function fmtTime(seconds) {
+  seconds = Math.max(0, Math.floor(seconds));
+  const h = String(Math.floor(seconds/3600)).padStart(2,"0");
+  const m = String(Math.floor(seconds%3600/60)).padStart(2,"0");
+  const s = String(seconds%60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function elapsedSeconds() {
+  if (!trip) return 0;
+  return Math.floor(((trip.endTime || Date.now()) - trip.startTime)/1000);
+}
+function currentKm() { return totalMeters/1000; }
+function getFuelUsed() {
+  return settings.kmPerL > 0 ? currentKm()/settings.kmPerL : 0;
+}
+function getFuelRemaining() {
+  return Math.max(0, settings.initial-getFuelUsed());
+}
+function formatDate(timestamp) {
+  return new Date(timestamp).toLocaleString();
+}
+
+function setAppTab(tab) {
+  document.querySelectorAll(".app-tab").forEach(button => {
+    button.classList.toggle("active", button.dataset.tab === tab);
+  });
+  document.querySelectorAll("[data-page]").forEach(panel => {
+    panel.classList.toggle("tab-hidden", panel.dataset.page !== tab);
+  });
+  const layout = document.querySelector(".layout");
+  layout.classList.toggle("single-panel", tab !== "map");
+  // On the Map tab, show map and destination side-by-side. Other tabs show only their selected panels.
+  if (tab === "map") {
+    document.querySelectorAll("[data-page='map']").forEach(panel => panel.classList.remove("tab-hidden"));
+  }
+  setTimeout(() => { if (map) map.invalidateSize(); }, 80);
+}
+
+function initMap() {
+  map = L.map("map", {zoomControl:false}).setView([6.9271,79.8612], 12);
+  L.tileLayer(
+  "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
+  {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }
+).addTo(map);
+
+  travelledLine = L.polyline([], {
+    color:"#167bff", weight:6, opacity:.9, lineCap:"round"
+  }).addTo(map);
+
+  const icon = L.divIcon({
+    className:"",
+    html:`<div class="vehicle-marker">${settings.vehicle || "🛺"}</div>`,
+    iconSize:[42,42],
+    iconAnchor:[21,21]
+  });
+  vehicleMarker = L.marker([6.9271,79.8612], {icon}).addTo(map);
+}
+function updateVehicleIcon() {
+  if (!vehicleMarker) return;
+  const icon = L.divIcon({
+    className:"",
+    html:`<div class="vehicle-marker">${settings.vehicle || "🛺"}</div>`,
+    iconSize:[42,42],
+    iconAnchor:[21,21]
+  });
+  vehicleMarker.setIcon(icon);
+}
+
+function setGPSStatus(connected, text) {
+  $("gpsDot").classList.toggle("on", connected);
+  $("gpsStatus").textContent = text;
+}
+function requestLocation() {
+  if (!("geolocation" in navigator)) {
+    showNotice("මෙම browser එක GPS geolocation සඳහා සහාය නොදක්වයි.");
+    return;
+  }
+  setGPSStatus(false, "Getting GPS…");
+  navigator.geolocation.getCurrentPosition(
+    onPosition,
+    onLocationError,
+    {enableHighAccuracy:true, timeout:20000, maximumAge:0}
+  );
+}
+function onLocationError(error) {
+  setGPSStatus(false, "GPS unavailable");
+  const messages = {
+    1:"Location permission denied. Browser settings වලින් Location access allow කරන්න.",
+    2:"GPS location ලබාගත නොහැක. Device location on කරලා නැවත උත්සාහ කරන්න.",
+    3:"GPS request එක timeout වුණා. Open sky එකකදී නැවත උත්සාහ කරන්න."
+  };
+  showNotice(messages[error.code] || "GPS location ලබාගත නොහැක.");
+  if (!trip) $("tripMessage").textContent = "GPS unavailable. Check location permission.";
+}
+function onPosition(position) {
+  hideNotice();
+  const c = {
+    lat:position.coords.latitude,
+    lng:position.coords.longitude
+  };
+  currentPosition = c;
+  currentAccuracy = position.coords.accuracy;
+  setGPSStatus(true, "GPS connected");
+  $("coordinates").textContent = `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+  $("accuracy").textContent = `${Math.round(currentAccuracy)} m`;
+
+  vehicleMarker.setLatLng(c);
+  if (!hasCenteredOnGPS) {
+    map.setView(c, 16);
+    hasCenteredOnGPS = true;
+  }
+  if (trip) {
+    const now = position.timestamp || Date.now();
+    let meters = 0;
+    if (previousPoint) {
+      const delta = haversine(previousPoint, c);
+      const seconds = Math.max(0.1, (now-lastGpsTime)/1000);
+
+      // Ignore poor-accuracy GPS jumps and unrealistic teleports.
+      const maxPlausible = Math.max(100, seconds*65);
+      if (currentAccuracy <= 60 && delta <= maxPlausible) {
+        meters = delta;
+        totalMeters += meters;
+        travelledLine.addLatLng(c);
+      }
+    } else {
+      travelledLine.addLatLng(c);
+    }
+    previousPoint = c;
+    lastGpsTime = now;
+
+    const gpsSpeed = position.coords.speed;
+    if (typeof gpsSpeed === "number" && Number.isFinite(gpsSpeed) && gpsSpeed >= 0) {
+      lastGoodSpeed = gpsSpeed*3.6;
+    } else if (meters > 0) {
+      // Fallback speed is approximate between GPS updates.
+      lastGoodSpeed = Math.min(250, meters/Math.max(.1,(now-(trip.lastSpeedTime||now))/1000)*3.6);
+    }
+    trip.lastSpeedTime = now;
+    $("speed").textContent = Math.round(lastGoodSpeed);
+    updateDashboard();
+  }
+}
+
+function startTrip() {
+  if (trip) return;
+  hideNotice();
+  if (!navigator.geolocation) {
+    showNotice("මෙම browser එක GPS සඳහා සහාය නොදක්වයි.");
+    return;
+  }
+  if (!window.isSecureContext) {
+    showNotice("GPS සඳහා HTTPS හෝ localhost භාවිතා කරන්න.");
+    return;
+  }
+  if (settings.kmPerL <= 0 || settings.initial < 0 || settings.tank <= 0) {
+    showNotice("Fuel settings නිවැරදිව ඇතුළත් කරන්න.");
+    return;
+  }
+  if (settings.initial > settings.tank) {
+    showNotice("Fuel currently in tank, tank capacity එකට වඩා වැඩියි.");
+    return;
+  }
+
+  totalMeters = 0;
+  previousPoint = null;
+  lastGpsTime = 0;
+  lastGoodSpeed = 0;
+  travelledLine.setLatLngs([]);
+  trip = {
+    id:Date.now(),
+    startTime:Date.now(),
+    startLocation:currentPosition ? {...currentPosition} : null,
+    points:[],
+    endTime:null
+  };
+  if (currentPosition) {
+    previousPoint = currentPosition;
+    lastGpsTime = Date.now();
+    travelledLine.addLatLng(currentPosition);
+  }
+  $("tripStatus").textContent = "ACTIVE";
+  $("tripStatus").style.background = "#163c36";
+  $("startBtn").disabled = true;
+  $("endBtn").disabled = false;
+  $("tripMessage").textContent = "Trip in progress. Keep this page open for continuous GPS tracking.";
+
+  gpsWatch = navigator.geolocation.watchPosition(
+    onPosition, onLocationError,
+    {enableHighAccuracy:true, timeout:20000, maximumAge:1000}
+  );
+  timerInterval = setInterval(updateDashboard,1000);
+  updateDashboard();
+  if (currentPosition) map.panTo(currentPosition);
+}
+function endTrip() {
+  if (!trip) return;
+  trip.endTime = Date.now();
+  trip.distanceKm = currentKm();
+  trip.durationSeconds = elapsedSeconds();
+  trip.fuelUsed = getFuelUsed();
+  trip.startLocation = trip.startLocation || null;
+  trip.endLocation = currentPosition ? {...currentPosition} : null;
+  trip.points = travelledLine.getLatLngs().map(p=>({lat:p.lat,lng:p.lng}));
+  history.unshift({...trip});
+  history = history.slice(0,100);
+  saveJSON(STORAGE_KEY, history);
+
+  if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
+  gpsWatch = null;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  trip = null;
+  lastGoodSpeed = 0;
+
+  $("tripStatus").textContent = "SAVED";
+  $("tripStatus").style.background = "#20314a";
+  $("startBtn").disabled = false;
+  $("endBtn").disabled = true;
+  $("tripMessage").textContent = "Trip saved to history on this browser.";
+  $("speed").textContent = "0";
+  renderHistory();
+  updateDashboard();
+}
+
+function updateDashboard() {
+  $("distance").textContent = currentKm().toFixed(2)+" km";
+  $("mapDistance").textContent = currentKm().toFixed(2)+" km";
+  $("timer").textContent = fmtTime(elapsedSeconds());
+
+  const used = getFuelUsed();
+  const remaining = getFuelRemaining();
+  const percent = settings.tank > 0 ? Math.max(0,Math.min(100,remaining/settings.tank*100)) : 0;
+  $("fuelUsed").textContent = used.toFixed(2)+" L";
+  $("fuelRemaining").textContent = remaining.toFixed(2)+" L";
+  $("fuelPercent").textContent = percent.toFixed(0)+"% of tank capacity";
+  $("range").textContent = Math.round(remaining*settings.kmPerL)+" km";
+  $("efficiencyLabel").textContent = settings.kmPerL.toFixed(1)+" km/L";
+  $("fuelBar").style.width = percent+"%";
+}
+
+function readSettingsFromInputs() {
+  const tank = validNumber($("tankCapacity").value,NaN);
+  const initial = validNumber($("fuelInitial").value,NaN);
+  const kmPerL = validNumber($("kmPerL").value,NaN);
+  const fuelPrice = validNumber($("fuelPrice").value,NaN);
+  if (![tank,initial,kmPerL,fuelPrice].every(Number.isFinite) ||
+      tank<=0 || initial<0 || initial>tank || kmPerL<=0 || fuelPrice<0) {
+    showNotice("Tank capacity, current fuel, km/L සහ fuel price අගයන් නිවැරදිව ඇතුළත් කරන්න.");
+    return false;
+  }
+  settings = {
+    tank, initial, kmPerL, fuelPrice,
+    vehicle:$("vehicleType").value
+  };
+  saveJSON(SETTINGS_KEY,settings);
+  updateVehicleIcon();
+  updateDashboard();
+  hideNotice();
+  return true;
+}
+function loadSettingsIntoInputs() {
+  $("tankCapacity").value = settings.tank;
+  $("fuelInitial").value = settings.initial;
+  $("kmPerL").value = settings.kmPerL;
+  $("fuelPrice").value = settings.fuelPrice;
+  $("vehicleType").value = settings.vehicle;
+}
+
+async function searchDestination() {
+  if (isSearching) return;
+  const query = $("destinationInput").value.trim();
+  if (!query) {
+    showNotice("ගමනාන්තයක් ඇතුළත් කරන්න.");
+    return;
+  }
+  isSearching = true;
+  $("searchBtn").disabled = true;
+  $("searchBtn").textContent = "Searching…";
+  hideNotice();
+
+  try {
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(query);
+    const response = await fetch(url,{headers:{"Accept":"application/json"}});
+    if (!response.ok) throw new Error("Search service error");
+    const results = await response.json();
+    if (!results.length) {
+      showNotice("මෙම ස්ථානය හමු වුණේ නැහැ. වෙනත් නමක් උත්සාහ කරන්න.");
+      return;
+    }
+    const place = results[0];
+    destination = {
+      lat:Number(place.lat), lng:Number(place.lon), name:place.display_name
+    };
+    if (destinationMarker) map.removeLayer(destinationMarker);
+    destinationMarker = L.marker([destination.lat,destination.lng]).addTo(map)
+      .bindPopup("Destination: "+escapeHTML(destination.name)).openPopup();
+
+    $("destinationInfo").textContent = destination.name;
+    if (currentPosition) await drawRoute(currentPosition,destination);
+    else {
+      map.setView([destination.lat,destination.lng],13);
+      showNotice("Destination saved. Allow GPS or use My Location to calculate the route.");
+    }
+  } catch (error) {
+    showNotice("Destination search failed. Check internet connection and try again.");
+  } finally {
+    isSearching = false;
+    $("searchBtn").disabled = false;
+    $("searchBtn").textContent = "Search";
+  }
+}
+async function drawRoute(from,to) {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Route service error");
+    const data = await response.json();
+    if (data.code !== "Ok" || !data.routes.length) throw new Error("No route");
+    const route = data.routes[0];
+    const latlngs = route.geometry.coordinates.map(p=>[p[1],p[0]]);
+    if (routeLine) map.removeLayer(routeLine);
+    routeLine = L.polyline(latlngs,{
+      color:"#ff2d55",weight:9,opacity:1,lineCap:"round",lineJoin:"round"
+    }).addTo(map);
+    routeLine.bringToFront();
+    map.fitBounds(routeLine.getBounds(),{padding:[45,45]});
+    $("destinationInfo").textContent =
+      `${destination.name} · Road route approx. ${(route.distance/1000).toFixed(1)} km · ${Math.round(route.duration/60)} min`;
+  } catch {
+    showNotice("Route ලබාගත නොහැකි වුණා. Destination marker එක පෙන්වලා තියෙනවා. පසුව නැවත උත්සාහ කරන්න.");
+    map.fitBounds(L.latLngBounds([from,to]),{padding:[35,35]});
+  }
+}
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+function clearRoute() {
+  destination = null;
+  $("destinationInput").value = "";
+  $("destinationInfo").textContent = "Search for a destination to show a route.";
+  if (routeLine) {map.removeLayer(routeLine);routeLine=null;}
+  if (destinationMarker) {map.removeLayer(destinationMarker);destinationMarker=null;}
+}
+function renderHistory() {
+  const list = $("historyList");
+  list.replaceChildren();
+  if (!history.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "No trips saved yet.";
+    list.appendChild(empty);
+    return;
+  }
+  history.forEach(item=>{
+    const card = document.createElement("article");
+    card.className = "trip";
+    const top = document.createElement("div");
+    top.className = "trip-top";
+    const title = document.createElement("strong");
+    title.textContent = `${Number(item.distanceKm||0).toFixed(2)} km`;
+    const date = document.createElement("small");
+    date.textContent = formatDate(item.startTime);
+    top.append(title,date);
+    const details = document.createElement("p");
+    details.textContent = `Time: ${fmtTime(item.durationSeconds||0)} · Fuel: ${Number(item.fuelUsed||0).toFixed(2)} L`;
+    card.append(top,details);
+
+    if (Array.isArray(item.points) && item.points.length) {
+      const show = document.createElement("button");
+      show.className = "btn btn-dark";
+      show.textContent = "Show route";
+      show.addEventListener("click",()=>{
+        if (travelledLine) travelledLine.setLatLngs(item.points);
+        map.fitBounds(L.latLngBounds(item.points),{padding:[25,25]});
+        $("locationTitle").textContent = "Saved trip";
+      });
+      card.appendChild(show);
+    }
+    list.appendChild(card);
+  });
+}
+function exportHistory() {
+  const blob = new Blob([JSON.stringify({history,settings},null,2)],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "smart-meeter-backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function clearHistory() {
+  if (!confirm("ඔබේ සියලුම saved trips මකා දමන්නද?")) return;
+  history = [];
+  saveJSON(STORAGE_KEY,history);
+  renderHistory();
+}
+
+initMap();
+document.querySelectorAll(".app-tab").forEach(button => {
+  button.addEventListener("click", () => setAppTab(button.dataset.tab));
+});
+setAppTab("map");
+loadSettingsIntoInputs();
+renderHistory();
+updateDashboard();
+
+$("startBtn").addEventListener("click",startTrip);
+$("endBtn").addEventListener("click",endTrip);
+$("locateBtn").addEventListener("click",()=>{
+  if (currentPosition) {
+    map.setView(currentPosition,17);
+  }
+  hasCenteredOnGPS = false;
+  requestLocation();
+});
+$("zoomBtn").addEventListener("click",()=>map.zoomIn());
+$("searchBtn").addEventListener("click",searchDestination);
+$("destinationInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter") searchDestination();
+});
+$("clearRouteBtn").addEventListener("click",clearRoute);
+$("saveSettingsBtn").addEventListener("click",readSettingsFromInputs);
+$("exportBtn").addEventListener("click",exportHistory);
+$("clearHistoryBtn").addEventListener("click",clearHistory);
+
+if ("geolocation" in navigator) requestLocation();
+else showNotice("This browser does not support GPS geolocation.");
+
+window.addEventListener("beforeunload",()=>{
+  if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
+});
+</script>
 </body>
 </html>
