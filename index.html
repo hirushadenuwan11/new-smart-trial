@@ -502,10 +502,8 @@ function addFuel() {
   if (getFuelRemaining() + liters > settings.tank + 0.0001) {
     showNotice(`තෙල් එකතු කළාම ටැංකි ධාරිතාව (${settings.tank.toFixed(2)} L) ඉක්මවනවා. Fuel settings පරීක්ෂා කරන්න.`); return;
   }
-  const localRefuel = {id:Date.now(), liters, cost, date:Date.now()};
-  refuels.unshift(localRefuel);
+  refuels.unshift({id:Date.now(), liters, cost, date:Date.now()});
   saveJSON(REFUEL_KEY, refuels);
-  if (typeof smToken !== 'undefined' && smToken) smApi('addFuel',{token:smToken,liters,cost}).then(smLoadState).catch(e=>showNotice('Cloud sync error: '+e.message));
   $("refuelLiters").value = ""; $("refuelCost").value = "";
   hideNotice(); updateDashboard(); renderRefuelHistory();
   showNotice(`${liters.toFixed(2)} L තෙල් ටැංකියට එකතු කළා.`);
@@ -713,7 +711,6 @@ function endTrip() {
   history.unshift({...trip});
   history = history.slice(0,100);
   saveJSON(STORAGE_KEY, history);
-  if (typeof smToken !== 'undefined' && smToken) smApi('saveTrip',{token:smToken,distanceKm:trip.distanceKm,fuelUsed:trip.fuelUsed,startDate:new Date(trip.startTime).toISOString(),endDate:new Date(trip.endTime).toISOString()}).then(smLoadState).catch(e=>showNotice('Trip cloud sync error: '+e.message));
 
   if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
   gpsWatch = null;
@@ -960,8 +957,7 @@ $("saveSettingsBtn").addEventListener("click",readSettingsFromInputs);
 $("exportBtn").addEventListener("click",exportHistory);
 $("clearHistoryBtn").addEventListener("click",clearHistory);
 
-if ("geolocation" in navigator) requestLocation();
-else showNotice("This browser does not support GPS geolocation.");
+// GPS is started after successful login.
 
 window.addEventListener("beforeunload",()=>{
   if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
@@ -969,54 +965,82 @@ window.addEventListener("beforeunload",()=>{
 </script>
 
 <style>
-#smAuth{position:fixed;inset:0;z-index:99999;background:#07111f;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial,sans-serif}
-#smAuth .authbox{width:min(420px,100%);background:#101e30;border:1px solid #263a50;border-radius:18px;padding:24px;box-shadow:0 20px 70px #0008}
-#smAuth h2{margin:0 0 8px;color:#f2f7ff}#smAuth p{color:#9fb4ca;font-size:14px;line-height:1.5}
-#smAuth input{display:block;width:100%;margin:12px 0;padding:13px;border-radius:9px;border:1px solid #36506a;background:#07111f;color:white;font-size:16px}
-#smAuth button{padding:12px 14px;border:0;border-radius:9px;background:#2584ff;color:white;font-weight:bold;margin:5px 5px 0 0;cursor:pointer}
-#smAuth button.secondary{background:#263a50}#smAuth #authMsg{min-height:20px;color:#25d9ef}
-#smLogout{position:fixed;z-index:9998;right:12px;top:12px;background:#263a50;color:white;border:0;border-radius:8px;padding:8px 10px;display:none}
+#smAuth{position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at top right,#12334b 0,#07111f 45%,#050a12 100%);display:flex;align-items:center;justify-content:center;padding:18px;font-family:Arial,sans-serif;color:#eef6ff;overflow:auto}
+#smAuth .authbox{width:min(440px,100%);background:rgba(15,29,46,.96);border:1px solid rgba(45,212,191,.28);border-radius:26px;padding:26px;box-shadow:0 22px 70px #0009}
+#smAuth .authlogo{width:64px;height:64px;margin:0 auto 14px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(135deg,#1f9d8b,#40c7ef);font-size:27px;box-shadow:0 8px 28px #1f9d8b40}
+#smAuth h2{text-align:center;margin:0 0 8px;font-size:24px;font-weight:900;letter-spacing:.5px}
+#smAuth .subtitle{text-align:center;color:#9eb4c8;font-size:13px;line-height:1.55;margin:0 0 20px}
+#smAuth label{display:block;color:#9eb4c8;font-size:11px;font-weight:800;letter-spacing:.5px;margin:13px 0 6px}
+#smAuth input{display:block;width:100%;box-sizing:border-box;padding:13px 14px;border-radius:13px;border:1px solid #30465b;background:#07111f;color:white;font-size:16px;outline:none}
+#smAuth input:focus{border-color:#31c6c2;box-shadow:0 0 0 3px #31c6c21c}
+#smAuth button{border:0;border-radius:13px;padding:13px 15px;background:linear-gradient(90deg,#23b5a7,#39c8ec);color:#04121c;font-weight:900;cursor:pointer}
+#smAuth .primary{width:100%;margin-top:17px}
+#smAuth .secondary{background:#263a50;color:#e5f1ff}
+#smAuth .switch{width:100%;margin-top:9px}
+#smAuth #authMsg{min-height:20px;color:#42d9d2;font-size:12px;line-height:1.45;margin:14px 0 0;text-align:center;overflow-wrap:anywhere}
+#smSavedWrap{display:none;margin:0 0 14px;padding-bottom:14px;border-bottom:1px solid #263a50}
+#smSavedList{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#smSavedList button{background:#0b1928;color:#67ded8;border:1px solid #2a7c7b;padding:11px 8px;font-size:12px;overflow-wrap:anywhere}
+#smSavedList button.active{background:#155e59;color:white}
+#smLogout{position:fixed;z-index:99998;right:12px;top:12px;border:0;border-radius:10px;padding:9px 12px;background:#263a50;color:white;display:none;cursor:pointer;font-weight:bold}
 </style>
 <div id="smAuth">
- <div class="authbox"><h2>SMART MEETER</h2><p>ඔබගේ account එකට Login වෙන්න. එකම account එකෙන් වෙනත් phone එකකත් දත්ත ලබාගත හැක.</p>
- <input id="smUser" autocomplete="username" placeholder="Username (අකුරු/අංක/_)">
- <input id="smPass" type="password" autocomplete="current-password" placeholder="Password (අවම අකුරු 10)">
- <button id="smLogin">Login</button><button id="smRegister" class="secondary">Register</button>
- <p id="authMsg">පළමුව Apps Script Web App URL එක සකසන්න.</p></div>
-</div><button id="smLogout">Logout</button>
+ <div class="authbox">
+  <div class="authlogo">🚗</div>
+  <h2>SMART MEETER</h2>
+  <p class="subtitle" id="authSubtitle">ඔබගේ ගිණුමට ඇතුළු වෙන්න. කලින් භාවිත කළ account එකක් තෝරාගන්නත් පුළුවන්.</p>
+  <div id="smSavedWrap"><label>කලින් භාවිත කළ ගිණුම් · SAVED ACCOUNTS</label><div id="smSavedList"></div></div>
+  <label for="smUser">USERNAME</label>
+  <input id="smUser" list="smSavedNames" autocomplete="username" placeholder="ඔබගේ username එක" />
+  <datalist id="smSavedNames"></datalist>
+  <label for="smPass">PASSWORD</label>
+  <input id="smPass" type="password" autocomplete="current-password" placeholder="Password" />
+  <button class="primary" id="smLogin">Login</button>
+  <button class="secondary switch" id="smRegister">අලුත් ගිණුමක් හදන්න · Register</button>
+  <p id="authMsg">Google Apps Script Web App URL එක සකස් කරන්න.</p>
+ </div>
+</div>
+<button id="smLogout">Logout</button>
 <script>
-// Apps Script > Deploy > Web app වෙතින් ලැබෙන /exec URL එක මෙතැනට දාන්න.
+// Paste your deployed Google Apps Script Web App URL ending in /exec here.
 const SMART_MEETER_API_URL = 'https://script.google.com/macros/s/AKfycbxUv8nK71CoB8mqrGTqcwXl2MXGMQZDh4zejcOaHpP1f3Z9f9L5zm_0RH5iEjjI2yIBwg/exec';
+const SM_SAVED_USERS_KEY = 'smart_meeter_saved_usernames_v1';
 let smToken = sessionStorage.getItem('sm_token') || '';
-async function smApi(action, payload={}) {
-  if (!SMART_MEETER_API_URL.startsWith('https://script.google.com/macros/s/')) throw new Error('Code එකේ SMART_MEETER_API_URL වෙත ඔබගේ deployed Web App URL එක දාන්න.');
-  const response = await fetch(SMART_MEETER_API_URL, {method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,...payload})});
-  const result = await response.json();
-  if (!result.ok) throw new Error(result.error || 'API error');
-  return result.data;
+let smMode = 'login';
+async function smApi(action,payload={}){
+ if(!SMART_MEETER_API_URL.startsWith('https://script.google.com/macros/s/')) throw new Error('Code එකේ SMART_MEETER_API_URL වෙත ඔබගේ deployed Web App URL එක දාන්න.');
+ const response=await fetch(SMART_MEETER_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,...payload})});
+ const result=await response.json(); if(!result.ok) throw new Error(result.error||'API error'); return result.data;
 }
-function smMessage(t){document.getElementById('authMsg').textContent=t;}
+function smMsg(t){document.getElementById('authMsg').textContent=t;}
+function smSavedUsers(){try{return JSON.parse(localStorage.getItem(SM_SAVED_USERS_KEY)||'[]').filter(x=>typeof x==='string')}catch(e){return []}}
+function smRememberUser(username){const all=smSavedUsers().filter(x=>x!==username);all.unshift(username);localStorage.setItem(SM_SAVED_USERS_KEY,JSON.stringify(all.slice(0,8)));smRenderSavedUsers()}
+function smRenderSavedUsers(){const users=smSavedUsers();const wrap=document.getElementById('smSavedWrap'),list=document.getElementById('smSavedList'),dl=document.getElementById('smSavedNames');list.replaceChildren();dl.replaceChildren();wrap.style.display=users.length?'block':'none';users.forEach(name=>{const opt=document.createElement('option');opt.value=name;dl.appendChild(opt);const b=document.createElement('button');b.type='button';b.textContent='👤 '+name;b.addEventListener('click',()=>{document.getElementById('smUser').value=name;document.getElementById('smPass').focus();list.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');smMsg('ගිණුම තෝරාගත්තා. Password එක ඇතුළත් කර Login කරන්න.')});list.appendChild(b)})}
 function smShowApp(){document.getElementById('smAuth').style.display='none';document.getElementById('smLogout').style.display='block';}
 function smShowLogin(){document.getElementById('smAuth').style.display='flex';document.getElementById('smLogout').style.display='none';}
 async function smLoadState(){
  const d=await smApi('getState',{token:smToken});
- // Import cloud data into this browser's app state.
- settings.initial=Number(d.initialFuel)||0; settings.kmPerL=Number(d.kmPerL)||15;
+ settings.initial=Number(d.initialFuel)||0;settings.kmPerL=Number(d.kmPerL)||15;
  refuels=(d.refuels||[]).map(x=>({id:x.id,liters:Number(x.liters)||0,cost:Number(x.cost)||0,date:new Date(x.date).getTime()}));
  history=(d.trips||[]).map(x=>({id:x.id,startTime:x.startDate?new Date(x.startDate).getTime():Date.now(),endTime:x.endDate?new Date(x.endDate).getTime():Date.now(),distanceKm:Number(x.distanceKm)||0,fuelUsed:Number(x.fuelUsed)||0,durationSeconds:0}));
- saveJSON(REFUEL_KEY,refuels);saveJSON(STORAGE_KEY,history);saveJSON(SETTINGS_KEY,settings);
- renderRefuelHistory();renderHistory();updateDashboard();
+ saveJSON(REFUEL_KEY,refuels);saveJSON(STORAGE_KEY,history);saveJSON(SETTINGS_KEY,settings);renderRefuelHistory();renderHistory();loadSettingsIntoInputs();updateDashboard();
 }
 async function smAuthAction(action){
- const username=document.getElementById('smUser').value.trim();const password=document.getElementById('smPass').value;
- try{smMessage('Connecting...');const d=await smApi(action,{username,password});smToken=d.token;sessionStorage.setItem('sm_token',smToken);await smLoadState();smShowApp();smMessage('Login successful');}
- catch(e){smMessage(e.message+' (Web App URL / deployment / permissions පරීක්ෂා කරන්න)');}
+ const username=document.getElementById('smUser').value.trim().toLowerCase();const password=document.getElementById('smPass').value;
+ if(!username||!password){smMsg('Username සහ Password දෙකම ඇතුළත් කරන්න.');return}
+ const btn=document.getElementById(action==='login'?'smLogin':'smRegister');btn.disabled=true;
+ try{smMsg(action==='login'?'Login වෙමින් පවතී…':'ගිණුම සාදමින් පවතී…');const d=await smApi(action,{username,password});
+  if(action==='register'){smRememberUser(username);document.getElementById('smPass').value='';smMode='login';smMsg('Register සාර්ථකයි. දැන් Login කරන්න.');return}
+  smToken=d.token;sessionStorage.setItem('sm_token',smToken);smRememberUser(username);await smLoadState();smShowApp();smMsg('Login successful');if('geolocation' in navigator)requestLocation();
+ }catch(e){smMsg(e.message+' — Web App URL සහ deployment පරීක්ෂා කරන්න.')}
+ finally{btn.disabled=false}
 }
 document.getElementById('smLogin').addEventListener('click',()=>smAuthAction('login'));
 document.getElementById('smRegister').addEventListener('click',()=>smAuthAction('register'));
-document.getElementById('smLogout').addEventListener('click',async()=>{try{await smApi('logout',{token:smToken});}catch(e){}smToken='';sessionStorage.removeItem('sm_token');smShowLogin();smMessage('Logout වුණා.');});
-// Keep the app behind login until a valid server session is confirmed.
-(async()=>{if(smToken){try{await smLoadState();smShowApp();}catch(e){smToken='';sessionStorage.removeItem('sm_token');smShowLogin();}}else smShowLogin();})();
+document.getElementById('smPass').addEventListener('keydown',e=>{if(e.key==='Enter')smAuthAction('login')});
+document.getElementById('smLogout').addEventListener('click',async()=>{try{await smApi('logout',{token:smToken})}catch(e){}smToken='';sessionStorage.removeItem('sm_token');smShowLogin();smMsg('Logout වුණා.');});
+smRenderSavedUsers();
+(async()=>{if(smToken){try{await smLoadState();smShowApp();if('geolocation' in navigator)requestLocation()}catch(e){smToken='';sessionStorage.removeItem('sm_token');smShowLogin()}}else smShowLogin()})();
 </script>
 
 </body>
