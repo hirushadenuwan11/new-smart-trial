@@ -1068,7 +1068,14 @@ function smShowApp(){document.getElementById('smAuth').style.display='none';docu
 function smShowLogin(){document.getElementById('smAuth').style.display='flex';document.getElementById('smLogout').style.display='none';}
 async function smLoadState(){
  const d=await smApi('getState',{token:smToken});
- settings.initial=Number(d.initialFuel)||0;settings.kmPerL=Number(d.kmPerL)||15;
+ // Keep the user's saved km/L setting on this browser. Older backend versions
+ // return a default 15 km/L on every login, which used to overwrite the edited value.
+ const locallySavedSettings=loadJSON(SETTINGS_KEY, null);
+ settings.initial=Number(d.initialFuel)||0;
+ const cloudKmPerL=Number(d.kmPerL);
+ if(Number.isFinite(cloudKmPerL) && cloudKmPerL>0 && cloudKmPerL!==15){settings.kmPerL=cloudKmPerL;}
+ else if(locallySavedSettings && Number(locallySavedSettings.kmPerL)>0){settings.kmPerL=Number(locallySavedSettings.kmPerL);}
+ else {settings.kmPerL=(Number.isFinite(cloudKmPerL)&&cloudKmPerL>0)?cloudKmPerL:15;}
  refuels=(d.refuels||[]).map(x=>({id:x.id,liters:Number(x.liters)||0,cost:Number(x.cost)||0,date:new Date(x.date).getTime()}));
  history=(d.trips||[]).map(x=>({id:x.id,startTime:x.startDate?new Date(x.startDate).getTime():Date.now(),endTime:x.endDate?new Date(x.endDate).getTime():Date.now(),distanceKm:Number(x.distanceKm)||0,fuelUsed:Number(x.fuelUsed)||0,durationSeconds:0}));
  saveJSON(REFUEL_KEY,refuels);saveJSON(STORAGE_KEY,history);saveJSON(SETTINGS_KEY,settings);renderRefuelHistory();renderHistory();loadSettingsIntoInputs();updateDashboard();
