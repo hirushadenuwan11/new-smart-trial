@@ -1092,7 +1092,16 @@ async function smAuthAction(action){
 document.getElementById('smLogin').addEventListener('click',()=>smAuthAction('login'));
 document.getElementById('smRegister').addEventListener('click',()=>smAuthAction('register'));
 document.getElementById('smPass').addEventListener('keydown',e=>{if(e.key==='Enter')smAuthAction('login')});
-document.getElementById('smLogout').addEventListener('click',async()=>{try{await smApi('logout',{token:smToken})}catch(e){}smToken='';sessionStorage.removeItem('sm_token');smShowLogin();smMsg('Logout වුණා.');});
+document.getElementById('smLogout').addEventListener('click',()=>{
+  // Make logout feel instant: clear this browser session and show login immediately.
+  const oldToken = smToken;
+  smToken = '';
+  sessionStorage.removeItem('sm_token');
+  smShowLogin();
+  smMsg('Logout වුණා.');
+  // Notify the server in the background; don't make the user wait for the network.
+  if (oldToken) smApi('logout',{token:oldToken}).catch(()=>{});
+});
 smRenderSavedUsers();
 (async()=>{if(smToken){try{await smLoadState();smShowApp();if('geolocation' in navigator)requestLocation()}catch(e){smToken='';sessionStorage.removeItem('sm_token');smShowLogin()}}else smShowLogin()})();
 </script>
