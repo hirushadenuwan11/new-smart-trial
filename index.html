@@ -353,6 +353,14 @@ footer {color:#6f879f;text-align:center;font-size:11px;padding:18px}
           </div>
         </div>
         <div class="bar"><div id="fuelBar"></div></div>
+        <div class="section-title" style="margin-top:18px"><span>⛽ Add Fuel / තෙල් එකතු කරන්න</span></div>
+        <div class="controls">
+          <div class="field"><label>Added fuel (L)</label><input type="number" id="refuelLiters" min="0.01" step="0.01" placeholder="උදා: 2.50"></div>
+          <div class="field"><label>Paid amount (LKR)</label><input type="number" id="refuelCost" min="0" step="0.01" placeholder="උදා: 900"></div>
+        </div>
+        <button class="btn btn-primary full" id="addFuelBtn" style="margin-top:10px">＋ තෙල් එකතු කරන්න</button>
+        <p class="help">තෙල් add කළාම ටැංකියේ ඉතිරි තෙල් ප්‍රමාණයට එකතු වෙනවා. ගමන් කරන දුර අනුව km/L අගය මත තෙල් ස්වයංක්‍රීයව අඩු වෙනවා.</p>
+        <div id="refuelHistory" class="history-list" style="margin-top:10px"></div>
       </section>
 
 
@@ -424,6 +432,8 @@ let history = loadJSON(STORAGE_KEY, []);
 let settings = loadJSON(SETTINGS_KEY, {
   tank:8, initial:8, kmPerL:25, fuelPrice:0, vehicle:"🛺"
 });
+const REFUEL_KEY = "smart-meeter-refuels-v1";
+let refuels = loadJSON(REFUEL_KEY, []);
 let destination = null;
 let destinationRouteMeters = null;
 let isSearching = false;
@@ -470,11 +480,40 @@ function elapsedSeconds() {
   return Math.floor(((trip.endTime || Date.now()) - trip.startTime)/1000);
 }
 function currentKm() { return totalMeters/1000; }
+function getHistoricalDistanceKm() {
+  return history.reduce((sum, item) => sum + Math.max(0, validNumber(item.distanceKm, 0)), 0);
+}
 function getFuelUsed() {
-  return settings.kmPerL > 0 ? currentKm()/settings.kmPerL : 0;
+  const km = getHistoricalDistanceKm() + currentKm();
+  return settings.kmPerL > 0 ? km/settings.kmPerL : 0;
+}
+function getFuelAdded() {
+  return refuels.reduce((sum, item) => sum + Math.max(0, validNumber(item.liters, 0)), 0);
 }
 function getFuelRemaining() {
-  return Math.max(0, settings.initial-getFuelUsed());
+  return Math.max(0, settings.initial + getFuelAdded() - getFuelUsed());
+}
+function addFuel() {
+  const liters = validNumber($("refuelLiters").value, NaN);
+  const cost = validNumber($("refuelCost").value, 0);
+  if (!Number.isFinite(liters) || liters <= 0 || !Number.isFinite(cost) || cost < 0) {
+    showNotice("තෙල් ලීටර් ගණන සහ ගෙවූ මුදල නිවැරදිව ඇතුළත් කරන්න."); return;
+  }
+  if (getFuelRemaining() + liters > settings.tank + 0.0001) {
+    showNotice(`තෙල් එකතු කළාම ටැංකි ධාරිතාව (${settings.tank.toFixed(2)} L) ඉක්මවනවා. Fuel settings පරීක්ෂා කරන්න.`); return;
+  }
+  refuels.unshift({id:Date.now(), liters, cost, date:Date.now()});
+  saveJSON(REFUEL_KEY, refuels);
+  $("refuelLiters").value = ""; $("refuelCost").value = "";
+  hideNotice(); updateDashboard(); renderRefuelHistory();
+  showNotice(`${liters.toFixed(2)} L තෙල් ටැංකියට එකතු කළා.`);
+}
+function renderRefuelHistory() {
+  const el = $("refuelHistory"); if (!el) return;
+  if (!refuels.length) { el.innerHTML = '<p class="help">තෙල් එකතු කළ වාර්තා තවම නැහැ.</p>'; return; }
+  el.innerHTML = '<div class="section-title"><span>Recent refuels</span></div>' + refuels.slice(0,8).map(r =>
+    `<div class="history-item"><strong>＋${validNumber(r.liters).toFixed(2)} L</strong><span>${new Date(r.date).toLocaleString()}${validNumber(r.cost)>0 ? ' · Rs. '+validNumber(r.cost).toFixed(2) : ''}</span></div>`
+  ).join('');
 }
 function formatDate(timestamp) {
   return new Date(timestamp).toLocaleString();
@@ -665,7 +704,7 @@ function endTrip() {
   trip.endTime = Date.now();
   trip.distanceKm = currentKm();
   trip.durationSeconds = elapsedSeconds();
-  trip.fuelUsed = getFuelUsed();
+  trip.fuelUsed = settings.kmPerL > 0 ? currentKm()/settings.kmPerL : 0;
   trip.startLocation = trip.startLocation || null;
   trip.endLocation = currentPosition ? {...currentPosition} : null;
   trip.points = travelledLine.getLatLngs().map(p=>({lat:p.lat,lng:p.lng}));
@@ -895,8 +934,10 @@ document.querySelectorAll(".app-tab").forEach(button => {
 setAppTab("map");
 loadSettingsIntoInputs();
 renderHistory();
+renderRefuelHistory();
 updateDashboard();
 
+$("addFuelBtn").addEventListener("click", addFuel);
 $("startBtn").addEventListener("click",startTrip);
 $("endBtn").addEventListener("click",endTrip);
 $("locateBtn").addEventListener("click",()=>{
