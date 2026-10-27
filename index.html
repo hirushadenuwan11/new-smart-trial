@@ -428,6 +428,8 @@ let travelledLine = null, routeLine = null, destinationMarker = null;
 let trip = null, gpsWatch = null, timerInterval = null;
 let totalMeters = 0, previousPoint = null;
 let lastGpsTime = 0, lastGoodSpeed = 0, currentAccuracy = null;
+let gpsPendingPoint = null, gpsPendingCount = 0;
+let smAuthBusy = false;
 let history = loadJSON(STORAGE_KEY, []);
 let settings = loadJSON(SETTINGS_KEY, {
   tank:8, initial:8, kmPerL:25, fuelPrice:0, vehicle:"🛺"
@@ -595,57 +597,87 @@ function onLocationError(error) {
   if (!trip) $("tripMessage").textContent = "GPS unavailable. Check location permission.";
 }
 function onPosition(position) {
-  hideNotice();
-  const c = {
-    lat:position.coords.latitude,
-    lng:position.coords.longitude
-  };
+  const c = {lat:position.coords.latitude, lng:position.coords.longitude};
   currentPosition = c;
-  currentAccuracy = position.coords.accuracy;
-  setGPSStatus(true, "GPS connected");
+  currentAccuracy = Number(position.coords.accuracy);
+  if (!Number.isFinite(currentAccuracy)) currentAccuracy = 999;
+  setGPSStatus(currentAccuracy <= 45, currentAccuracy <= 45 ? "GPS connected" : "GPS accuracy low");
   $("coordinates").textContent = `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
   $("accuracy").textContent = `${Math.round(currentAccuracy)} m`;
 
-  vehicleMarker.setLatLng(c);
-  if (!hasCenteredOnGPS) {
-    map.setView(c, 16);
-    hasCenteredOnGPS = true;
+  // Only move the marker/map for reasonably accurate fixes.
+  if (currentAccuracy <= 100) {
+    vehicleMarker.setLatLng(c);
+    if (!hasCenteredOnGPS) { map.setView(c, 16); hasCenteredOnGPS = true; }
+    if (trip) map.panTo(c, {animate:true, duration:0.25});
   }
-  // Keep the map following the vehicle during an active trip.
-  if (trip && currentAccuracy <= 100) {
-    map.panTo(c, {animate:true, duration:0.35});
-  }
-  if (trip) {
-    const now = position.timestamp || Date.now();
-    let meters = 0;
-    if (previousPoint) {
-      const delta = haversine(previousPoint, c);
-      const seconds = Math.max(0.1, (now-lastGpsTime)/1000);
 
-      // Ignore poor-accuracy GPS jumps and unrealistic teleports.
-      const maxPlausible = Math.max(100, seconds*65);
-      if (currentAccuracy <= 60 && delta <= maxPlausible) {
-        meters = delta;
-        totalMeters += meters;
-        travelledLine.addLatLng(c);
-      }
-    } else {
-      travelledLine.addLatLng(c);
-    }
-    previousPoint = c;
+  if (!trip) { hideNotice(); return; }
+  const now = Number(position.timestamp) || Date.now();
+  const gpsSpeed = Number(position.coords.speed);
+  const hasSpeed = Number.isFinite(gpsSpeed) && gpsSpeed >= 0;
+
+  // Reject inaccurate fixes. Do not use a noisy fix as the next distance baseline.
+  if (currentAccuracy > 45) {
+    gpsPendingPoint = null; gpsPendingCount = 0;
+    $("speed").textContent = "0";
+    return;
+  }
+
+  if (!previousPoint) {
+    previousPoint = c; lastGpsTime = now;
+    travelledLine.addLatLng(c);
+    return;
+  }
+
+  const seconds = Math.max(0.1, (now - lastGpsTime) / 1000);
+  const delta = haversine(previousPoint, c);
+  const plausibleMax = Math.max(35, seconds * 45);
+  if (delta > plausibleMax) {
+    // Likely a GPS jump; keep the previous accepted point as baseline.
+    gpsPendingPoint = null; gpsPendingCount = 0;
+    return;
+  }
+
+  const reportedMoving = hasSpeed && gpsSpeed >= 0.7;
+  const derivedSpeed = delta / seconds;
+  const minimumMovement = hasSpeed ? (reportedMoving ? 4 : 10) : 8;
+  const seemsMoving = reportedMoving || (!hasSpeed && derivedSpeed >= 1.6);
+
+  if (delta < minimumMovement || !seemsMoving) {
+    gpsPendingPoint = null; gpsPendingCount = 0;
+    lastGoodSpeed = hasSpeed ? Math.round(gpsSpeed * 3.6) : 0;
+    $("speed").textContent = String(Math.max(0, lastGoodSpeed));
+    // Advance time but not the point, so stationary jitter isn't accumulated.
     lastGpsTime = now;
-
-    const gpsSpeed = position.coords.speed;
-    if (typeof gpsSpeed === "number" && Number.isFinite(gpsSpeed) && gpsSpeed >= 0) {
-      lastGoodSpeed = gpsSpeed*3.6;
-    } else if (meters > 0) {
-      // Fallback speed is approximate between GPS updates.
-      lastGoodSpeed = Math.min(250, meters/Math.max(.1,(now-(trip.lastSpeedTime||now))/1000)*3.6);
-    }
-    trip.lastSpeedTime = now;
-    $("speed").textContent = Math.round(lastGoodSpeed);
     updateDashboard();
+    return;
   }
+
+  // Require consecutive movement fixes before adding distance.
+  if (!gpsPendingPoint) {
+    gpsPendingPoint = c; gpsPendingCount = 1;
+    lastGpsTime = now;
+    return;
+  }
+  const pendingDelta = haversine(gpsPendingPoint, c);
+  if (pendingDelta >= 4 && pendingDelta <= Math.max(35, seconds * 45)) gpsPendingCount++;
+  else { gpsPendingPoint = c; gpsPendingCount = 1; }
+
+  if (gpsPendingCount >= (hasSpeed ? 2 : 3)) {
+    const acceptedMeters = haversine(previousPoint, c);
+    if (acceptedMeters <= Math.max(35, seconds * 45)) {
+      totalMeters += acceptedMeters;
+      travelledLine.addLatLng(c);
+      previousPoint = c;
+      gpsPendingPoint = null; gpsPendingCount = 0;
+    }
+  }
+  lastGpsTime = now;
+  if (hasSpeed) lastGoodSpeed = Math.min(250, gpsSpeed * 3.6);
+  else if (seemsMoving) lastGoodSpeed = Math.min(250, derivedSpeed * 3.6);
+  $("speed").textContent = String(Math.round(lastGoodSpeed));
+  updateDashboard();
 }
 
 function startTrip() {
@@ -671,6 +703,7 @@ function startTrip() {
   totalMeters = 0;
   previousPoint = null;
   lastGpsTime = 0;
+  gpsPendingPoint = null; gpsPendingCount = 0;
   lastGoodSpeed = 0;
   travelledLine.setLatLngs([]);
   trip = {
@@ -689,7 +722,7 @@ function startTrip() {
   $("tripStatus").style.background = "#163c36";
   $("startBtn").disabled = true;
   $("endBtn").disabled = false;
-  $("tripMessage").textContent = "Trip in progress. Keep this page open for continuous GPS tracking.";
+  $("tripMessage").textContent = "Trip active. Chrome may pause GPS in the background; keep this page visible for the most reliable tracking.";
 
   gpsWatch = navigator.geolocation.watchPosition(
     onPosition, onLocationError,
@@ -717,6 +750,7 @@ function endTrip() {
   clearInterval(timerInterval);
   timerInterval = null;
   trip = null;
+  gpsPendingPoint = null; gpsPendingCount = 0;
   lastGoodSpeed = 0;
 
   $("tripStatus").textContent = "SAVED";
@@ -974,6 +1008,11 @@ window.addEventListener("beforeunload",()=>{
 #smAuth input{display:block;width:100%;box-sizing:border-box;padding:13px 14px;border-radius:13px;border:1px solid #30465b;background:#07111f;color:white;font-size:16px;outline:none}
 #smAuth input:focus{border-color:#31c6c2;box-shadow:0 0 0 3px #31c6c21c}
 #smAuth button{border:0;border-radius:13px;padding:13px 15px;background:linear-gradient(90deg,#23b5a7,#39c8ec);color:#04121c;font-weight:900;cursor:pointer}
+#smAuth button:disabled{opacity:.72;cursor:wait}
+#smAuth button.is-loading{position:relative;padding-right:42px}
+#smAuth button.is-loading:after{content:'';position:absolute;right:15px;top:50%;width:15px;height:15px;margin-top:-8px;border:2px solid #04121c55;border-top-color:#04121c;border-radius:50%;animation:smSpin .7s linear infinite}
+@keyframes smSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#smAuth button.is-loading:after{animation:none}}
 #smAuth .primary{width:100%;margin-top:17px}
 #smAuth .secondary{background:#263a50;color:#e5f1ff}
 #smAuth .switch{width:100%;margin-top:9px}
@@ -1026,14 +1065,29 @@ async function smLoadState(){
  saveJSON(REFUEL_KEY,refuels);saveJSON(STORAGE_KEY,history);saveJSON(SETTINGS_KEY,settings);renderRefuelHistory();renderHistory();loadSettingsIntoInputs();updateDashboard();
 }
 async function smAuthAction(action){
- const username=document.getElementById('smUser').value.trim().toLowerCase();const password=document.getElementById('smPass').value;
+ if(smAuthBusy) return;
+ const username=document.getElementById('smUser').value.trim().toLowerCase();
+ const password=document.getElementById('smPass').value;
  if(!username||!password){smMsg('Username සහ Password දෙකම ඇතුළත් කරන්න.');return}
- const btn=document.getElementById(action==='login'?'smLogin':'smRegister');btn.disabled=true;
- try{smMsg(action==='login'?'Login වෙමින් පවතී…':'ගිණුම සාදමින් පවතී…');const d=await smApi(action,{username,password});
-  if(action==='register'){smRememberUser(username);document.getElementById('smPass').value='';smMode='login';smMsg('Register සාර්ථකයි. දැන් Login කරන්න.');return}
-  smToken=d.token;sessionStorage.setItem('sm_token',smToken);smRememberUser(username);await smLoadState();smShowApp();smMsg('Login successful');if('geolocation' in navigator)requestLocation();
+ const btn=document.getElementById(action==='login'?'smLogin':'smRegister');
+ smAuthBusy=true; btn.disabled=true; btn.classList.add('is-loading');
+ const oldText=btn.textContent;
+ btn.textContent=action==='login'?'Login වෙමින්…':'ගිණුම සාදමින්…';
+ try{
+  smMsg(action==='login'?'Login වෙමින් පවතී…':'ගිණුම සාදමින් පවතී…');
+  const d=await smApi(action,{username,password});
+  if(action==='register'){
+   smRememberUser(username);document.getElementById('smPass').value='';smMode='login';
+   smMsg('Register සාර්ථකයි. දැන් Login කරන්න.');return;
+  }
+  smToken=d.token;sessionStorage.setItem('sm_token',smToken);smRememberUser(username);
+  // Show app as soon as authentication succeeds; load cloud data after the overlay is removed.
+  smShowApp(); smMsg('Login successful');
+  if('geolocation' in navigator) requestLocation();
+  try { await smLoadState(); }
+  catch(stateError) { smMsg('Login සාර්ථකයි, නමුත් cloud data load වුණේ නැහැ. Internet එක පරීක්ෂා කරන්න.'); }
  }catch(e){smMsg(e.message+' — Web App URL සහ deployment පරීක්ෂා කරන්න.')}
- finally{btn.disabled=false}
+ finally{smAuthBusy=false;btn.disabled=false;btn.classList.remove('is-loading');btn.textContent=oldText;}
 }
 document.getElementById('smLogin').addEventListener('click',()=>smAuthAction('login'));
 document.getElementById('smRegister').addEventListener('click',()=>smAuthAction('register'));
