@@ -382,7 +382,7 @@
             </div>
         </div>
 
-        <!-- TAB 6: SUPPORT / ABOUT (Highlighted App Version & Telegram Group Link) -->
+        <!-- TAB 6: SUPPORT / ABOUT (Updated with 0714334610 & Telegram Link) -->
         <div id="tab-support" class="tab-content hidden space-y-4">
             <div class="app-glass rounded-3xl p-6 shadow-xl space-y-5 border border-slate-800">
                 <div class="text-center space-y-2">
@@ -391,14 +391,14 @@
                     </div>
                     <h3 class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-cyan-400">සහාය සහ තොරතුරු (Support & About)</h3>
                     
-                    <!-- Highlighted App Version Badge -->
+                    <!-- Highlighted App Version -->
                     <div class="inline-block bg-gradient-to-r from-brand-500 to-emerald-400 text-slate-950 font-black px-4 py-1.5 rounded-full text-xs shadow-lg uppercase tracking-wider animate-pulse">
                         🚀 App Version: v2.5.0 Pro
                     </div>
                 </div>
 
                 <div class="space-y-3">
-                    <!-- Telegram Group Button (Requested) -->
+                    <!-- Telegram Group Button -->
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-cyan-500/40 space-y-2">
                         <span class="text-xs font-black text-cyan-400 block"><i class="fa-brands fa-telegram mr-1.5 text-cyan-400"></i> නිල ටෙලිග්‍රෑම් කණ්ඩායම (Telegram Group)</span>
                         <a href="https://t.me/smartmeeter" target="_blank" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-slate-950 font-black py-3 px-4 rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow-lg">
@@ -407,13 +407,13 @@
                         </a>
                     </div>
 
-                    <!-- Hotline Support -->
+                    <!-- Updated Customer Hotline (0714334610) -->
                     <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
                         <div>
                             <span class="text-xs font-black text-slate-200 block">පාරිභෝගික සේවා ඇමතුම් (Hotline)</span>
-                            <span class="text-xs font-bold text-brand-400">+94 77 123 4567</span>
+                            <span class="text-xs font-bold text-brand-400">+94 71 433 4610</span>
                         </div>
-                        <a href="tel:+94771234567" class="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center text-sm"><i class="fa-solid fa-phone"></i></a>
+                        <a href="tel:+94714334610" class="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center text-sm"><i class="fa-solid fa-phone"></i></a>
                     </div>
                 </div>
             </div>
@@ -450,11 +450,11 @@
 
         function initLeafletMap() {
             if(mapInstance) return;
-            // PickMe / Google Light Mode Tile Layer (CartoDB Positron - Clean White Style)
+            // Standard OpenStreetMap Tiles to prevent Not Found errors
             mapInstance = L.map('live-leaflet-map').setView([6.9271, 79.8612], 16);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '© OpenStreetMap contributors & CARTO'
+                attribution: '© OpenStreetMap'
             }).addTo(mapInstance);
         }
 
@@ -612,7 +612,6 @@
                 if(mapInstance) {
                     mapInstance.setView([current.lat, current.lng], 17);
                     
-                    // Custom Car Marker for PickMe Style Map
                     const carIcon = L.divIcon({
                         className: 'custom-car-icon',
                         html: '<div style="background:#00F5D4; color:#0f172a; width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; box-shadow:0 0 15px rgba(0,245,212,0.8); border:2px solid #ffffff;"><i class="fa-solid fa-taxi"></i></div>',
@@ -672,7 +671,6 @@
 
             alert(`ගමන සාර්ථකයි!\nගිය දුර: ${totalTripKM.toFixed(2)} KM\nකැපුන තෙල්: ${fuelNeeded.toFixed(2)} L`);
             
-            // Reset Meter to 0 after stopping trip
             totalTripKM = 0;
             document.getElementById('map-live-dist').innerText = `0.00 KM`;
             document.getElementById('map-live-speed').innerText = `0 km/h`;
