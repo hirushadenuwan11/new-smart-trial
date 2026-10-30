@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMART MEETER - Professional Pro Dashboard with Live Map</title>
+    <title>SMART MEETER - Pro Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS for Free Professional Live Maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script>
         tailwind.config = {
@@ -61,7 +60,6 @@
             50% { box-shadow: 0 0 30px rgba(0, 245, 212, 0.45); }
         }
 
-        /* Leaflet map dark tile filter for dark mode */
         .dark .leaflet-layer, .dark .leaflet-control-zoom-in, .dark .leaflet-control-zoom-out, .dark .leaflet-attribution-flag {
             filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
         }
@@ -77,7 +75,7 @@
             </div>
             <h3 class="text-xl font-black text-amber-400 tracking-wide">ලේඛන කල් ඉකුත් වෙමින් පවතී!</h3>
             <p id="warning-modal-msg" class="text-xs text-slate-300 font-bold leading-relaxed"></p>
-            <button onclick="closeWarningModal()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 font-black py-3.5 rounded-2xl text-sm transition">තේරුණා (OK)</button>
+            <button onclick="closeWarningModal()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 font-black py-3.5 rounded-2xl text-sm">තේරුණා (OK)</button>
         </div>
     </div>
 
@@ -89,7 +87,7 @@
             </div>
             <h3 class="text-xl font-black text-red-500 tracking-wide">අවවාදයයි! තෙල් අවසන් වෙමින් පවතී!</h3>
             <p id="low-fuel-msg" class="text-xs text-slate-300 font-bold leading-relaxed">ටැංකියේ ඉතිරිව ඇත්තේ ලීටර් 1 කටත් වඩා අඩු ප්‍රමාණයකි!</p>
-            <button onclick="closeLowFuelModal()" class="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-3.5 rounded-2xl text-sm transition">තේරුණා (OK)</button>
+            <button onclick="closeLowFuelModal()" class="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-3.5 rounded-2xl text-sm">තේරුණා (OK)</button>
         </div>
     </div>
 
@@ -153,27 +151,31 @@
     <!-- MAIN DASHBOARD -->
     <main id="dashboard-section" class="hidden max-w-xl mx-auto p-4 space-y-5 pb-24 animate-fade">
         
-        <!-- MENU NAVIGATION BAR (Including Live Map) -->
-        <div class="grid grid-cols-5 gap-1 app-glass p-1.5 rounded-2xl shadow-xl border border-slate-800 light:border-slate-200">
-            <button onclick="switchTab('home')" id="menu-home" class="py-2.5 rounded-xl text-xs font-black bg-brand-500 text-slate-950 flex flex-col items-center justify-center space-y-1 shadow-lg scale-105">
+        <!-- MENU NAVIGATION BAR (Including PickMe Style Map & Support Tabs) -->
+        <div class="grid grid-cols-6 gap-1 app-glass p-1.5 rounded-2xl shadow-xl border border-slate-800 light:border-slate-200">
+            <button onclick="switchTab('home')" id="menu-home" class="py-2.5 rounded-xl text-[11px] font-black bg-brand-500 text-slate-950 flex flex-col items-center justify-center space-y-1 shadow-lg scale-105">
                 <i class="fa-solid fa-gauge text-xs"></i>
                 <span>මීටරය</span>
             </button>
-            <button onclick="switchTab('map')" id="menu-map" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
-                <i class="fa-solid fa-map-location-dot text-xs"></i>
+            <button onclick="switchTab('map')" id="menu-map" class="py-2.5 rounded-xl text-[11px] font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
+                <i class="fa-solid fa-location-arrow text-xs"></i>
                 <span>සිතියම</span>
             </button>
-            <button onclick="switchTab('refuel')" id="menu-refuel" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
+            <button onclick="switchTab('refuel')" id="menu-refuel" class="py-2.5 rounded-xl text-[11px] font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
                 <i class="fa-solid fa-gas-pump text-xs"></i>
                 <span>තෙල්</span>
             </button>
-            <button onclick="switchTab('documents')" id="menu-documents" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
+            <button onclick="switchTab('documents')" id="menu-documents" class="py-2.5 rounded-xl text-[11px] font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
                 <i class="fa-solid fa-file-shield text-xs"></i>
                 <span>ලේඛන</span>
             </button>
-            <button onclick="switchTab('history')" id="menu-history" class="py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
+            <button onclick="switchTab('history')" id="menu-history" class="py-2.5 rounded-xl text-[11px] font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
                 <i class="fa-solid fa-clock-rotate-left text-xs"></i>
                 <span>ඉතිහාසය</span>
+            </button>
+            <button onclick="switchTab('support')" id="menu-support" class="py-2.5 rounded-xl text-[11px] font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1">
+                <i class="fa-solid fa-headset text-xs"></i>
+                <span>උදව්</span>
             </button>
         </div>
 
@@ -258,37 +260,37 @@
             </div>
         </div>
 
-        <!-- TAB 2: PROFESSIONAL LIVE MAP & NAVIGATION -->
+        <!-- TAB 2: PICKME STYLE LIVE MAP & NAVIGATION -->
         <div id="tab-map" class="tab-content hidden space-y-4">
-            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-4 border border-slate-800">
+            <div class="app-glass rounded-3xl p-5 shadow-xl space-y-4 border border-brand-500/40 relative overflow-hidden">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center space-x-2">
-                        <i class="fa-solid fa-map-location-dot"></i>
-                        <span>සජීවී ජීපීඑස් සිතියම සහ වේගය (Live Map)</span>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-brand-500 flex items-center space-x-2">
+                        <i class="fa-solid fa-location-arrow animate-pulse"></i>
+                        <span>පික්මී ස්ටයිල් සජීවී සිතියම (PickMe Map View)</span>
                     </h3>
-                    <span class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-cyan-500/20 text-cyan-300"><i class="fa-solid fa-satellite-dish mr-1"></i> GPS Active</span>
+                    <span class="text-[10px] font-black px-2.5 py-1 rounded-xl bg-brand-500/20 text-brand-300">Live GPS</span>
                 </div>
 
-                <!-- Leaflet Map Container -->
-                <div id="live-leaflet-map" class="w-full h-72 rounded-2xl border border-slate-700 shadow-inner z-10"></div>
+                <!-- PickMe Style Live Map Container -->
+                <div id="live-leaflet-map" class="w-full h-80 rounded-2xl border border-slate-700 shadow-inner z-10 relative"></div>
 
                 <div class="grid grid-cols-2 gap-3 text-center">
-                    <div class="bg-slate-950/50 p-3 rounded-2xl border border-slate-800">
-                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">වත්මන් වේගය (Speed)</span>
-                        <span id="map-live-speed" class="text-xl font-black text-brand-500">0 km/h</span>
+                    <div class="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
+                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">ගමන් කළ දුර (Trip KM)</span>
+                        <span id="map-live-dist" class="text-2xl font-black text-brand-500">0.00 KM</span>
                     </div>
-                    <div class="bg-slate-950/50 p-3 rounded-2xl border border-slate-800">
-                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">ගමන් කළ දුර (Distance)</span>
-                        <span id="map-live-dist" class="text-xl font-black text-cyan-400">0.00 KM</span>
+                    <div class="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
+                        <span class="text-[9px] font-black uppercase text-slate-400 block mb-1">වත්මන් වේගය (Speed)</span>
+                        <span id="map-live-speed" class="text-2xl font-black text-cyan-400">0 km/h</span>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 pt-2">
-                    <button id="map-start-btn" onclick="startLiveTrip()" class="w-full bg-gradient-to-r from-emerald-400 to-teal-300 text-slate-950 font-black py-3 rounded-2xl text-xs shadow-lg">
-                        <i class="fa-solid fa-play mr-1"></i> ගමන අරඹන්න
+                    <button id="map-start-btn" onclick="startLiveTrip()" class="w-full bg-gradient-to-r from-brand-500 to-emerald-400 text-slate-950 font-black py-4 rounded-2xl text-sm shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play"></i><span>ගමන අරඹන්න</span>
                     </button>
-                    <button id="map-end-btn" onclick="endLiveTrip()" class="hidden w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-3 rounded-2xl text-xs shadow-lg">
-                        <i class="fa-solid fa-stop mr-1"></i> ගමන නවත්වන්න
+                    <button id="map-end-btn" onclick="endLiveTrip()" class="hidden w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-black py-4 rounded-2xl text-sm shadow-lg flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-stop"></i><span>ගමන නවත්වන්න</span>
                     </button>
                 </div>
             </div>
@@ -383,14 +385,57 @@
             </div>
         </div>
 
+        <!-- TAB 6: SUPPORT / ABOUT (App Version, Support Numbers, WhatsApp Groups) -->
+        <div id="tab-support" class="tab-content hidden space-y-4">
+            <div class="app-glass rounded-3xl p-6 shadow-xl space-y-5 border border-slate-800">
+                <div class="text-center space-y-2">
+                    <div class="w-14 h-14 bg-brand-500/20 text-brand-500 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-inner border border-brand-500/30">
+                        <i class="fa-solid fa-headset"></i>
+                    </div>
+                    <h3 class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-cyan-400">සහාය සහ තොරතුරු (Support & About)</h3>
+                    <p class="text-xs text-slate-400 font-bold">Smart Meeter v2.5.0 Professional Edition</p>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-black text-slate-200 block">පාරිභෝගික සේවා ඇමතුම් (Hotline)</span>
+                            <span class="text-xs font-bold text-brand-400">+94 77 123 4567 / +94 11 234 5678</span>
+                        </div>
+                        <a href="tel:+94771234567" class="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center text-sm"><i class="fa-solid fa-phone"></i></a>
+                    </div>
+
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-black text-slate-200 block">व्हाට්സാප් උදව් අංකය (WhatsApp Help)</span>
+                            <span class="text-xs font-bold text-emerald-400">+94 71 987 6543</span>
+                        </div>
+                        <a href="https://wa.me/94719876543" target="_blank" class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-brands fa-whatsapp"></i></a>
+                    </div>
+
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <span class="text-xs font-black text-cyan-400 block"><i class="fa-solid fa-users mr-1.5"></i> රියදුරු නිල වට්සාප් කණ්ඩායම් (WhatsApp Groups)</span>
+                        <div class="grid grid-cols-1 gap-2">
+                            <a href="https://chat.whatsapp.com/example1" target="_blank" class="bg-slate-900 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-between">
+                                <span><i class="fa-brands fa-whatsapp text-emerald-400 mr-2"></i> ත්‍රිරෝද රථ රියදුරු සංසදය (Group 01)</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                            <a href="https://chat.whatsapp.com/example2" target="_blank" class="bg-slate-900 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700 py-3 px-4 rounded-xl text-xs font-black transition flex items-center justify-between">
+                                <span><i class="fa-brands fa-whatsapp text-emerald-400 mr-2"></i> Smart Meeter Drivers Hub (Group 02)</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Leaflet JS Library -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzqkQnYlcfKlizdu19yUJYeAF8zasYRKGP3kW7x9x9V3eQwhxMtyfPb6esxm5yFfHUa/exec";
-
         let isRegisterState = false;
         let currentVehicle = "";
         let currentPass = "";
@@ -416,7 +461,7 @@
 
         function initLeafletMap() {
             if(mapInstance) return;
-            mapInstance = L.map('live-leaflet-map').setView([6.9271, 79.8612], 15);
+            mapInstance = L.map('live-leaflet-map').setView([6.9271, 79.8612], 16);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap'
@@ -427,15 +472,15 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
-            ['home', 'map', 'refuel', 'documents', 'history'].forEach(name => {
+            ['home', 'map', 'refuel', 'documents', 'history', 'support'].forEach(name => {
                 const btn = document.getElementById(`menu-${name}`);
                 if(name === tabName) {
-                    btn.className = "py-2.5 rounded-xl text-xs font-black bg-brand-500 text-slate-950 flex flex-col items-center justify-center space-y-1 shadow-lg scale-105";
+                    btn.className = "py-2.5 rounded-xl text-[11px] font-black bg-brand-500 text-slate-950 flex flex-col items-center justify-center space-y-1 shadow-lg scale-105";
                     if(tabName === 'map' && mapInstance) {
                         setTimeout(() => { mapInstance.invalidateSize(); }, 200);
                     }
                 } else {
-                    btn.className = "py-2.5 rounded-xl text-xs font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1";
+                    btn.className = "py-2.5 rounded-xl text-[11px] font-black text-slate-400 hover:text-slate-100 flex flex-col items-center justify-center space-y-1";
                 }
             });
         }
@@ -575,7 +620,7 @@
                 document.getElementById('map-live-speed').innerText = `${speedKMh} km/h`;
 
                 if(mapInstance) {
-                    mapInstance.setView([current.lat, current.lng], 16);
+                    mapInstance.setView([current.lat, current.lng], 17);
                     if(!mapMarker) {
                         mapMarker = L.marker([current.lat, current.lng]).addTo(mapInstance);
                     } else {
@@ -583,7 +628,7 @@
                     }
                     gpsCoordinates.push([current.lat, current.lng]);
                     if(!polylinePath) {
-                        polylinePath = L.polyline(gpsCoordinates, { color: '#00F5D4', weight: 5 }).addTo(mapInstance);
+                        polylinePath = L.polyline(gpsCoordinates, { color: '#00F5D4', weight: 6 }).addTo(mapInstance);
                     } else {
                         polylinePath.setLatLngs(gpsCoordinates);
                     }
@@ -591,7 +636,7 @@
 
                 if(!lastPosition) { lastPosition = current; return; }
                 const dist = calculateDistance(lastPosition.lat, lastPosition.lng, current.lat, current.lng);
-                if(dist > 0.005) { // 5 meters movement filter
+                if(dist > 0.003) { // Movement filter
                     totalTripKM += dist;
                     lastPosition = current;
                     document.getElementById('map-live-dist').innerText = `${totalTripKM.toFixed(2)} KM`;
@@ -604,17 +649,36 @@
             document.getElementById('map-start-btn').classList.remove('hidden');
             document.getElementById('map-end-btn').classList.add('hidden');
 
-            if(totalTripKM < 0.05) { alert("ගමන් කළ දුර ඉතා අඩුය!"); return; }
+            if(totalTripKM < 0.05) { 
+                alert("ගමන් කළ දුර ඉතා අඩුය!"); 
+                totalTripKM = 0;
+                document.getElementById('map-live-dist').innerText = `0.00 KM`;
+                document.getElementById('map-live-speed').innerText = `0 km/h`;
+                if(polylinePath) { mapInstance.removeLayer(polylinePath); polylinePath = null; }
+                gpsCoordinates = [];
+                return; 
+            }
 
             const fuelNeeded = totalTripKM / mileage;
             currentFuel = Math.max(0, currentFuel - fuelNeeded);
             totalDrivenKM += totalTripKM;
-            historyData.push({ date: `${new Date().toLocaleString()} (ජීපීඑස් ගමන)`, liters: -parseFloat(fuelNeeded.toFixed(2)), cost: 0, currentFuel });
+            
+            // ඉතිහාසයට ගිය දුර සහ කැපුන තෙල් ප්‍රමාණය එකතු කිරීම
+            const dateStr = new Date().toLocaleString();
+            const logDesc = `${dateStr} (ගමන: ${totalTripKM.toFixed(2)}KM, තෙල්: -${fuelNeeded.toFixed(2)}L)`;
+            historyData.push({ date: logDesc, liters: -parseFloat(fuelNeeded.toFixed(2)), cost: 0, currentFuel });
+            
             saveAndSync();
             updateUI();
-            alert(`ගමන සාර්ථකයි! ගිය දුර: ${totalTripKM.toFixed(2)} KM. අඩු වූ තෙල්: ${fuelNeeded.toFixed(2)} L.`);
+
+            alert(`ගමන සාර්ථකයි!\nගිය දුර: ${totalTripKM.toFixed(2)} KM\nකැපුන තෙල්: ${fuelNeeded.toFixed(2)} L`);
+            
+            // ගමන නැවැත්වූ පසු මීටරය 0 කිරීම
             totalTripKM = 0;
             document.getElementById('map-live-dist').innerText = `0.00 KM`;
+            document.getElementById('map-live-speed').innerText = `0 km/h`;
+            if(polylinePath) { mapInstance.removeLayer(polylinePath); polylinePath = null; }
+            gpsCoordinates = [];
         }
 
         async function readPumpPhoto(event) {
@@ -688,7 +752,7 @@
             const need = km / mileage;
             currentFuel = Math.max(0, currentFuel - need);
             totalDrivenKM += km;
-            historyData.push({ date: `${new Date().toLocaleString()} (අතින් දුර: ${km}KM)`, liters: -parseFloat(need.toFixed(2)), cost: 0, currentFuel });
+            historyData.push({ date: `${new Date().toLocaleString()} (අතින් දුර: ${km}KM, තෙල්: -${need.toFixed(2)}L)`, liters: -parseFloat(need.toFixed(2)), cost: 0, currentFuel });
             saveAndSync();
             updateUI();
             alert('සාර්ථකයි!');
